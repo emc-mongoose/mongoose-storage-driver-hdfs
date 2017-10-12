@@ -1,14 +1,22 @@
-.gradle
-/build/
+# IntelliJ project files
+.idea
+*.iml
+out
+gen### Java template
+*.class
 
-# Ignore Gradle GUI config
-gradle-app.setting
+# Package Files #
+*.jar
+*.war
+*.ear
+*.tgz
+build/*
+*/build/*
+mongoose-*
+MANIFEST.MF
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
-!gradle-wrapper.jar
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
 
-# Cache of project
-.gradletasknamecache
-
-# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
-# gradle/wrapper/gradle-wrapper.properties
+# protect the gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar
