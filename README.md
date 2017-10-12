@@ -16,7 +16,9 @@ instance.
 The item types `data` and `path` are supported.
 `token` type is not supported.
 
-## Data Operations
+## Data
+
+Operations on the data are implemented as file operations
 
 ### Noop
 
@@ -27,14 +29,13 @@ Doesn't invoke anything.
 If size is 0 then `createNewFile(Path f)` is invoked (returning
 true/false).
 
-Otherwise, `create(Path f, false, bufferSize)` is invoked with
+Otherwise, `create(Path f, false, int bufferSize)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data.
 
 #### Copy
 
-`createSymlink(Path dst, Path src, true)` is invoked (doesn't return
-anything).
+Uses both `create` and `open` methods to obtain output and input streams
 
 #### Concatenation
 
@@ -65,24 +66,55 @@ No additional info.
 
 #### Overwrite
 
-
+`create(Path f, true, int bufferSize)` is invoked with
+calculated output buffer size. The returned `FSDataOutputStream` is
+used to write the data.
 
 #### Random Ranges
 
+`create(Path f, true, int bufferSize)` is invoked with
+calculated output buffer size. The returned `FSDataOutputStream` is
+used to write the data at the calculated positions.
+
 #### Fixed Ranges
 
+`create(Path f, true, int bufferSize)` is invoked with
+calculated output buffer size. The returned `FSDataOutputStream` is
+used to write the data at the calculated positions.
+
 ##### Append
+
+`append(Path f, int bufferSize)` is invoked.
 
 ### Delete
 
 `delete(Path f, false)` is invoked.
 
-## Path Operations
+## Path
+
+Operations on the path are implemented as directory operations
 
 ### Create
 
 `mkdirs(Path)`
 
+#### Copy
+
+TODO
+
+#### Concatenation
+
+TODO
+
+### Read
+
+`listFiles(Path f, false)` is invoked returning the `RemoteIterator`
+instance which is used to iterate the directory contents.
+
 ### Delete
 
 `delete(Path f, true)` is invoked.
+
+## Token
+
+Not supported
