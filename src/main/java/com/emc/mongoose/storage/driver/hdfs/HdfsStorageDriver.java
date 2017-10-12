@@ -13,6 +13,8 @@ import com.emc.mongoose.ui.config.storage.StorageConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 import com.emc.mongoose.ui.log.LogUtil;
 
+import com.emc.mongoose.ui.log.Loggers;
+import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -34,7 +36,10 @@ public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
 extends NioStorageDriverBase<I, O> {
 
 	private final Configuration hadoopConfig = new Configuration();
+
 	private int nodePort = -1;
+	private int inBuffSize = BUFF_SIZE_MIN;
+	private int outBuffSize = BUFF_SIZE_MIN;
 
 	private final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
 	private final String[] endpointAddrs;
@@ -66,6 +71,9 @@ extends NioStorageDriverBase<I, O> {
 				}
 			}
 		}
+
+		requestAuthTokenFunc = null; // do not use
+		requestNewPathFunc = null; // do not use
 	}
 
 	protected String getNextEndpointAddr() {
@@ -103,25 +111,28 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	@Override
-	protected void invokeNio(final O ioTask) {
-
+	protected void prepareIoTask(final O ioTask) {
+		super.prepareIoTask(ioTask);
 		String endpointAddr = ioTask.getNodeAddr();
 		if(endpointAddr == null) {
 			endpointAddr = getNextEndpointAddr();
 			ioTask.setNodeAddr(endpointAddr);
 		}
+	}
 
-		final FileSystem endpoint = endpoints.computeIfAbsent(endpointAddr, this::getEndpoint);
+	@Override
+	protected void invokeNio(final O ioTask) {
+		final FileSystem fs = endpoints.computeIfAbsent(ioTask.getNodeAddr(), this::getEndpoint);
 	}
 
 	@Override
 	protected String requestNewPath(final String path) {
-		return null;
+		throw new AssertionError("Should not be invoked");
 	}
 
 	@Override
 	protected String requestNewAuthToken(final Credential credential) {
-		throw new AssertionError("Not implemented");
+		throw new AssertionError("Should not be invoked");
 	}
 
 	@Override
@@ -133,18 +144,46 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	@Override
-	public void adjustIoBuffers(final long avgDataItemSize, final IoType ioType)
+	public void adjustIoBuffers(final long avgTransferSize, final IoType ioType)
 	throws RemoteException {
-
+		int size;
+		if(avgTransferSize < BUFF_SIZE_MIN) {
+			size = BUFF_SIZE_MIN;
+		} else if(BUFF_SIZE_MAX < avgTransferSize) {
+			size = BUFF_SIZE_MAX;
+		} else {
+			size = (int) avgTransferSize;
+		}
+		if(IoType.CREATE.equals(ioType)) {
+			Loggers.MSG.info("Adjust output buffer size: {}", SizeInBytes.formatFixedSize(size));
+			outBuffSize = size;
+		} else if(IoType.READ.equals(ioType)) {
+			Loggers.MSG.info("Adjust input buffer size: {}", SizeInBytes.formatFixedSize(size));
+			inBuffSize = size;
+		}
 	}
 
 	@Override
 	protected void doClose()
 	throws IOException {
+
 		super.doClose();
-		for(final FileSystem endpoint : endpoints.values()) {
+
+		hadoopConfig.clear();
+		for(final FSDataInputStream input: inputs.values()) {
+			input.close();
+		}
+		inputs.clear();
+		for(final FSDataOutputStream output: outputs.values()) {
+			output.close();
+		}
+		outputs.clear();
+		for(final FileSystem endpoint: endpoints.values()) {
 			endpoint.close();
 		}
-		hadoopConfig.clear();
+		endpoints.clear();
+		for(int i = 0; i < endpointAddrs.length; i ++) {
+			endpointAddrs[i] = null;
+		}
 	}
 }
