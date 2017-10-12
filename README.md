@@ -45,17 +45,27 @@ Note:
 
 ### Read
 
-
+`open(Path f, int bufferSize)` is invoked. The returned
+`FSDataInputStream` instance is used then to read the data.
 
 #### Partial
 
+The same method used as above, because the `FSDataInputStream` supports
+the positioning needed for the partial read.
+
 ##### Random Ranges
 
+No additional info.
+
 ##### Fixed Ranges
+
+No additional info.
 
 ### Update
 
 #### Overwrite
+
+
 
 #### Random Ranges
 
