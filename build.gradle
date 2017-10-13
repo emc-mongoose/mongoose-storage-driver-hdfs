@@ -35,7 +35,7 @@ ext {
 		commonsJava: "[1.0.8,)",
 		hadoop: "2.8.1",
 		log4j: "2.9.1",
-		mongoose: "[4.0.0-alpha2,)",
+		mongoose: "[4.0.0-alpha3,)",
 	]
 
 	setClassPath = {
