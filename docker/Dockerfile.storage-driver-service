@@ -1,0 +1,7 @@
+ARG DRIVER_VERSION
+
+FROM emcmongoose/mongoose-storage-driver-nfs:${DRIVER_VERSION}
+
+EXPOSE 1099
+
+ENTRYPOINT ["/usr/bin/mongoose", "-jar", "/opt/mongoose/mongoose-storage-driver-service.jar"]
