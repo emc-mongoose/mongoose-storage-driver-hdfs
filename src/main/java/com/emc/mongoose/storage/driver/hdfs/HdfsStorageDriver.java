@@ -210,22 +210,49 @@ extends NioStorageDriverBase<I, O> {
 
 	private void invokeFileNio(final DataIoTask<? extends DataItem> fileIoTask) {
 		final IoType ioType = fileIoTask.getIoType();
-		switch(ioType) {
-			case NOOP:
-				invokeNoop((O) fileIoTask);
-				break;
-			case CREATE:
-				invokeFileCreate(fileIoTask);
-				break;
-			case READ:
-				break;
-			case UPDATE:
-				invokeFileDelete(fileIoTask);
-				break;
-			case DELETE:
-				break;
-			case LIST:
-				break;
+		try {
+			switch(ioType) {
+				case NOOP:
+					invokeNoop((O) fileIoTask);
+					break;
+				case CREATE:
+					invokeFileCreate(fileIoTask);
+					break;
+				case READ:
+					break;
+				case UPDATE:
+					invokeFileDelete(fileIoTask);
+					break;
+				case DELETE:
+					break;
+				case LIST:
+					break;
+			}
+		} catch(final RuntimeException e) {
+			final Throwable cause = e.getCause();
+			final DataItem fileItem = fileIoTask.getItem();
+			final long countBytesDone = fileIoTask.getCountBytesDone();
+			if(cause instanceof IOException) {
+				LogUtil.exception(Level.DEBUG, cause, "Failed open the file: {}" + fileItem.getName());
+				fileItem.size(countBytesDone);
+				finishIoTask((O) fileIoTask);
+				fileIoTask.setStatus(IoTask.Status.FAIL_IO);
+			} else if(cause instanceof URISyntaxException) {
+				LogUtil.exception(Level.DEBUG, cause, "Failed to calculate the HDFS service URI");
+				fileItem.size(countBytesDone);
+				finishIoTask((O) fileIoTask);
+				fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CLIENT);
+			} else if(cause != null) {
+				LogUtil.exception(Level.DEBUG, cause, "Unexpected failure");
+				fileItem.size(countBytesDone);
+				finishIoTask((O) fileIoTask);
+				fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
+			} else {
+				LogUtil.exception(Level.DEBUG, e, "Unexpected failure");
+				fileItem.size(countBytesDone);
+				finishIoTask((O) fileIoTask);
+				fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
+			}
 		}
 	}
 
@@ -235,14 +262,30 @@ extends NioStorageDriverBase<I, O> {
 
 	protected void invokeFileCreate(final DataIoTask<? extends DataItem> fileIoTask) {
 		final DataItem fileItem = fileIoTask.getItem();
+		final long fileSize;
 		try {
-			final long fileSize = fileItem.size();
-			long countBytesDone = fileIoTask.getCountBytesDone();
-			final FSDataOutputStream output = fileOutputStreams.computeIfAbsent(
-				fileIoTask, this::getCreateFileStream
-			);
+			fileSize = fileItem.size();
 		} catch(final IOException e) {
-			// TODO fail the task
+			throw new AssertionError(e);
+		}
+		long countBytesDone = fileIoTask.getCountBytesDone();
+		final FSDataOutputStream output = fileOutputStreams.computeIfAbsent(
+			fileIoTask, this::getCreateFileStream
+		);
+		try {
+			long remainingBytes = fileSize - countBytesDone;
+			if(remainingBytes > 0) {
+				countBytesDone += fileItem.writeToStream(output, remainingBytes);
+				fileIoTask.setCountBytesDone(countBytesDone);
+			} else {
+				finishIoTask((O) fileIoTask);
+				output.close();
+			}
+		} catch(final IOException e) {
+			LogUtil.exception(Level.DEBUG, e, "Failed to write to the file: {}" + fileItem.getName());
+			fileItem.size(countBytesDone);
+			finishIoTask((O) fileIoTask);
+			fileIoTask.setStatus(IoTask.Status.FAIL_IO);
 		}
 	}
 
