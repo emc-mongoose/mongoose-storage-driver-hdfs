@@ -34,33 +34,30 @@ ext {
 	depVersion = [
 		commonsJava: "[1.0.8,)",
 		hadoop: "2.8.1",
-		log4j: "2.9.1",
+		log4j: "2.8.2",
 		mongoose: "[4.0.0-alpha3,)",
 	]
 
 	setClassPath = {
 		configurations -> [
 			configurations.runtime
-				.collect { file ->
-				// it's 3rd party if jar file name doesn't contain the root project name
-				if(-1 == file.name.indexOf(rootProject.name)) {
-					["lib", file.name].join(File.separator)
-				} else {
-					file.name
-				}
-			}
-			.join(" "),
+				.collect { file -> file.name }
+				.join(" "),
 		]
 			.join(" ")
 	}
 }
 
 dependencies {
-	compile(
+
+	compileOnly(
 		"com.github.emc-mongoose:mongoose-storage-driver-nio:${depVersion.mongoose}",
 		"com.github.emc-mongoose:mongoose-ui:${depVersion.mongoose}",
 		"com.github.akurilov:java-commons:${depVersion.commonsJava}",
 		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
+	)
+
+	compile(
 		"org.apache.hadoop:hadoop-common:${depVersion.hadoop}",
 		"org.apache.hadoop:hadoop-hdfs-client:${depVersion.hadoop}",
 	)
@@ -94,10 +91,21 @@ test {
 
 jar {
 	archiveName "$project.name.$extension"
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	from configurations.runtime.collect {
+		it.isDirectory() ?
+			it :
+			(
+				it.name.contains("hadoop-common") ?
+					zipTree(it).matching {
+						exclude "**/org.apache.hadoop.fs.FileSystem"
+					} :
+					zipTree(it)
+			)
+	}
 	manifest {
 		attributes(
 			"Class-Path": setClassPath(configurations),
-			"Main-Class": "com.emc.nagaina.Main",
 			"Implementation-Version": version,
 			"Implementation-Title": "$name"
 		)
