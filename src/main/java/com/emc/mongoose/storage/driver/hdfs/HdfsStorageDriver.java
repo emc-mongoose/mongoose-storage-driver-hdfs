@@ -1,5 +1,6 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
+import com.emc.mongoose.api.common.env.Extensions;
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
 import com.emc.mongoose.api.model.io.IoType;
@@ -41,6 +42,9 @@ public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
 extends NioStorageDriverBase<I, O> {
 
 	private final Configuration hadoopConfig = new Configuration();
+	{
+		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+	}
 
 	private int nodePort = -1;
 	private int inBuffSize = BUFF_SIZE_MIN;
@@ -127,10 +131,12 @@ extends NioStorageDriverBase<I, O> {
 		final String dstPath = createFileTask.getDstPath();
 		final String itemName = createFileTask.getItem().getName();
 		final String itemPath;
-		if(dstPath == null || dstPath.isEmpty()) {
+		if(dstPath == null || dstPath.isEmpty() || itemName.startsWith(dstPath)) {
 			itemPath = itemName;
-		} else {
+		} else if(dstPath.endsWith("/")) {
 			itemPath = dstPath + itemName;
+		} else {
+			itemPath = dstPath + "/" + itemName;
 		}
 		try {
 			return endpoint.create(itemPath, false);

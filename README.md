@@ -4,7 +4,7 @@
 
 Node's FS browser is available at default port #50070
 
-HDFS default port #8020 either #9000
+HDFS default port #9000
 
 # Operations
 
