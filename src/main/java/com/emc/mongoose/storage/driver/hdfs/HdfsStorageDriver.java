@@ -1,5 +1,6 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
+import com.emc.mongoose.api.common.env.Extensions;
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
 import com.emc.mongoose.api.model.io.IoType;
@@ -21,14 +22,13 @@ import com.emc.mongoose.ui.log.Loggers;
 import com.github.akurilov.commons.system.SizeInBytes;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSClient;
+import org.apache.hadoop.hdfs.DFSInputStream;
 
 import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.rmi.RemoteException;
@@ -42,17 +42,20 @@ public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
 extends NioStorageDriverBase<I, O> {
 
 	private final Configuration hadoopConfig = new Configuration();
+	{
+		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+	}
 
 	private int nodePort = -1;
 	private int inBuffSize = BUFF_SIZE_MIN;
 	private int outBuffSize = BUFF_SIZE_MIN;
 
-	private final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
+	private final ConcurrentMap<String, DFSClient> endpoints = new ConcurrentHashMap<>();
 	private final String[] endpointAddrs;
 	private final AtomicInteger rrc = new AtomicInteger(0);
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataInputStream>
+	private final ConcurrentMap<DataIoTask<? extends DataItem>, DFSInputStream>
 		fileInputStreams = new ConcurrentHashMap<>();
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataOutputStream>
+	private final ConcurrentMap<DataIoTask<? extends DataItem>, OutputStream>
 		fileOutputStreams = new ConcurrentHashMap<>();
 
 	public HdfsStorageDriver(
@@ -64,7 +67,8 @@ extends NioStorageDriverBase<I, O> {
 
 		final NodeConfig nodeConfig = storageConfig.getNetConfig().getNodeConfig();
 		nodePort = storageConfig.getNetConfig().getNodeConfig().getPort();
-		endpointAddrs = (String[]) nodeConfig.getAddrs().toArray();
+		final List<String> endpointAddrList = nodeConfig.getAddrs();
+		endpointAddrs = endpointAddrList.toArray(new String[endpointAddrList.size()]);
 		for(final String nodeAddr: endpointAddrs) {
 			try {
 				endpoints.computeIfAbsent(nodeAddr, this::getEndpoint);
@@ -88,7 +92,7 @@ extends NioStorageDriverBase<I, O> {
 		return endpointAddrs[rrc.getAndIncrement() % endpointAddrs.length];
 	}
 
-	protected FileSystem getEndpoint(final String nodeAddr) {
+	protected DFSClient getEndpoint(final String nodeAddr) {
 		try {
 			final String addr;
 			final int port;
@@ -102,7 +106,7 @@ extends NioStorageDriverBase<I, O> {
 			}
 			final String uid = credential == null ? null : credential.getUid();
 			final URI endpointUri = new URI("hdfs", uid, addr, port, "/", null, null);
-			return FileSystem.get(endpointUri, hadoopConfig);
+			return new DFSClient(endpointUri, hadoopConfig);
 		} catch(final URISyntaxException | IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -119,79 +123,23 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	protected FSDataInputStream getReadFileStream(final O readTask) {
-		final String endpointAddr = readTask.getNodeAddr();
-		final FileSystem fs = endpoints.get(endpointAddr);
-		final String srcPath = readTask.getSrcPath();
-		final String itemName = readTask.getItem().getName();
-		final Path itemPath;
-		if(srcPath == null || srcPath.isEmpty()) {
-			itemPath = new Path(itemName);
-		} else {
-			itemPath = new Path(srcPath, itemName);
-		}
-		try {
-			return fs.open(itemPath, inBuffSize);
-		} catch(final IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected FSDataOutputStream getCreateFileStream(
+	protected OutputStream getCreateFileStream(
 		final DataIoTask<? extends DataItem> createFileTask
 	) {
 		final String endpointAddr = createFileTask.getNodeAddr();
-		final FileSystem fs = endpoints.get(endpointAddr);
+		final DFSClient endpoint = endpoints.get(endpointAddr);
 		final String dstPath = createFileTask.getDstPath();
 		final String itemName = createFileTask.getItem().getName();
-		final Path itemPath;
-		if(dstPath == null || dstPath.isEmpty()) {
-			itemPath = new Path(itemName);
+		final String itemPath;
+		if(dstPath == null || dstPath.isEmpty() || itemName.startsWith(dstPath)) {
+			itemPath = itemName;
+		} else if(dstPath.endsWith("/")) {
+			itemPath = dstPath + itemName;
 		} else {
-			itemPath = new Path(dstPath, itemName);
+			itemPath = dstPath + "/" + itemName;
 		}
 		try {
-			return fs.create(itemPath, false, outBuffSize);
-		} catch(final IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected FSDataOutputStream getUpdateFileStream(
-		final DataIoTask<? extends DataItem> updateFileTask
-	) {
-		final String endpointAddr = updateFileTask.getNodeAddr();
-		final FileSystem fs = endpoints.get(endpointAddr);
-		final String dstPath = updateFileTask.getDstPath();
-		final String itemName = updateFileTask.getItem().getName();
-		final Path itemPath;
-		if(dstPath == null || dstPath.isEmpty()) {
-			itemPath = new Path(itemName);
-		} else {
-			itemPath = new Path(dstPath, itemName);
-		}
-		try {
-			return fs.create(itemPath, true, outBuffSize);
-		} catch(final IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected FSDataOutputStream getAppendStream(
-		final DataIoTask<? extends DataItem> appendFileTask
-	) {
-		final String endpointAddr = appendFileTask.getNodeAddr();
-		final FileSystem fs = endpoints.get(endpointAddr);
-		final String dstPath = appendFileTask.getDstPath();
-		final String itemName = appendFileTask.getItem().getName();
-		final Path itemPath;
-		if(dstPath == null || dstPath.isEmpty()) {
-			itemPath = new Path(itemName);
-		} else {
-			itemPath = new Path(dstPath, itemName);
-		}
-		try {
-			return fs.append(itemPath, outBuffSize);
+			return endpoint.create(itemPath, false);
 		} catch(final IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -269,7 +217,7 @@ extends NioStorageDriverBase<I, O> {
 			throw new AssertionError(e);
 		}
 		long countBytesDone = fileIoTask.getCountBytesDone();
-		final FSDataOutputStream output = fileOutputStreams.computeIfAbsent(
+		final OutputStream output = fileOutputStreams.computeIfAbsent(
 			fileIoTask, this::getCreateFileStream
 		);
 		try {
@@ -291,17 +239,18 @@ extends NioStorageDriverBase<I, O> {
 
 	protected void invokeFileDelete(final DataIoTask<? extends DataItem> fileIoTask) {
 		final String endpointAddr = fileIoTask.getNodeAddr();
-		final FileSystem fs = endpoints.get(endpointAddr);
+		final DFSClient endpoint = endpoints.get(endpointAddr);
 		final String dstPath = fileIoTask.getDstPath();
 		final DataItem fileItem = fileIoTask.getItem();
-		final Path filePath = dstPath == null ?
-			new Path(fileItem.getName()) : new Path(dstPath, fileItem.getName());
+		final String filePath = dstPath == null ?
+			fileItem.getName() : dstPath + fileItem.getName();
 		try {
-			fs.delete(filePath, false);
+			endpoint.delete(filePath, false);
 			finishIoTask((O) fileIoTask);
 		} catch(final IOException e) {
 			LogUtil.exception(
-				Level.DEBUG, e, "Failed to delete the file {}", filePath, fs.getUri()
+				Level.DEBUG, e, "Failed to delete the file {} @ {}", filePath,
+				endpoint.getCanonicalServiceName()
 			);
 			fileIoTask.startResponse();
 			fileIoTask.finishResponse();
@@ -358,15 +307,15 @@ extends NioStorageDriverBase<I, O> {
 		super.doClose();
 
 		hadoopConfig.clear();
-		for(final FSDataInputStream input: fileInputStreams.values()) {
+		for(final DFSInputStream input: fileInputStreams.values()) {
 			input.close();
 		}
 		fileInputStreams.clear();
-		for(final FSDataOutputStream output: fileOutputStreams.values()) {
+		for(final OutputStream output: fileOutputStreams.values()) {
 			output.close();
 		}
 		fileOutputStreams.clear();
-		for(final FileSystem endpoint: endpoints.values()) {
+		for(final DFSClient endpoint: endpoints.values()) {
 			endpoint.close();
 		}
 		endpoints.clear();
