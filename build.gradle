@@ -4,9 +4,6 @@ buildscript {
 	repositories {
 		mavenCentral()
 	}
-	dependencies {
-		classpath "eu.appsatori:gradle-fatjar-plugin:0.3"
-	}
 }
 
 apply plugin: "java"
