@@ -6,6 +6,35 @@ Node's FS browser is available at default port #50070
 
 HDFS default port #9000
 
+## Basic Testing
+
+1. Run the pseudo distributed HDFS cluster
+```bash
+docker run -d --net host -e SSH_PORT=2222 --name hdfs dockerq/docker-hdfs
+```
+
+2. Open the browser and check the HDFS share @ [127.0.0.1:50070/explorer.html]
+Here the data will be observable.
+
+3. Build the Mongoose HDFS storage driver jar either the Docker image.
+
+4. Put the HDFS storage driver jar into the Mongoose's `ext` directory
+either use the Docker image with HDFS support.
+
+5. Run some Mongoose test, for example:
+```bash
+java -jar mongoose-4.0.0/mongoose.jar \
+    --item-data-size=64MB \
+    --item-output-file=hdfs.files.csv \
+    --item-output-path=/test \
+    --storage-auth-uid=root \
+    --storage-driver-concurrency=10 \
+    --storage-driver-type=hdfs \
+    --storage-net-node-addr=<HADOOP_NAME_NODE_IP_ADDR> \
+    --storage-net-node-port=9000 \
+    --test-step-limit-count=100
+```
+
 # Operations
 
 The information below describes which particular methods are invoked

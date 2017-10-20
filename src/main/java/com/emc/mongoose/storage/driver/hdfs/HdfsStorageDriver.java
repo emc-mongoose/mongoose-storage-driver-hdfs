@@ -194,9 +194,9 @@ extends NioStorageDriverBase<I, O> {
 				case READ:
 					break;
 				case UPDATE:
-					invokeFileDelete(fileIoTask);
 					break;
 				case DELETE:
+					invokeFileDelete(fileIoTask);
 					break;
 				case LIST:
 					break;
