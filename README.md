@@ -13,7 +13,7 @@ HDFS default port #9000
 docker run -d --net host -e SSH_PORT=2222 --name hdfs dockerq/docker-hdfs
 ```
 
-2. Open the browser and check the HDFS share @ [127.0.0.1:50070/explorer.html]
+2. Open the browser and check the HDFS share @ http://127.0.0.1:50070/explorer.html
 Here the data will be observable.
 
 3. Build the Mongoose HDFS storage driver jar either the Docker image.
