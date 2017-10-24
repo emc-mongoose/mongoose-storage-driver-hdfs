@@ -1,4 +1,4 @@
-description = "Mongoose HDFS storage driver"
+description = "HDFS storage driver for Mongoose"
 
 buildscript {
 	repositories {
@@ -44,7 +44,7 @@ ext {
 				.collect { file -> file.name }
 				.join(" "),
 		]
-			.join(" ")
+		.join(" ")
 	}
 }
 
@@ -167,24 +167,24 @@ uploadArchives {
 			pom {
 
 				groupId = rootProject.group
-				name = "nagaina"
+				name = "mongoose-storage-driver-hdfs"
 				artifactId = name
 
 				project {
 					description = rootProject.description
 
-					url "https://github.com/emc-mongoose/nagaina/wiki"
+					url "https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/wiki"
 
 					scm {
-						connection "https://github.com/emc-mongoose/nagaina.git"
-						developerConnection "https://github.com/emc-mongoose/nagaina.git"
-						url "https://github.com/emc-mongoose/nagaina.git"
+						connection "https://github.com/emc-mongoose/mongoose-storage-driver-hdfs.git"
+						developerConnection "https://github.com/emc-mongoose/mongoose-storage-driver-hdfs.git"
+						url "https://github.com/emc-mongoose/mongoose-storage-driver-hdfs.git"
 					}
 
 					licenses {
 						license {
 							name "The MIT License (MIT)"
-							url "https://github.com/emc-mongoose/nagaina/wiki/License"
+							url "https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/wiki/License"
 						}
 					}
 
