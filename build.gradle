@@ -1,4 +1,4 @@
-description = "Mongoose HDFS storage driver"
+description = "HDFS storage driver for Mongoose"
 
 buildscript {
 	repositories {
@@ -44,7 +44,7 @@ ext {
 				.collect { file -> file.name }
 				.join(" "),
 		]
-			.join(" ")
+		.join(" ")
 	}
 }
 
