@@ -18,18 +18,21 @@ import com.emc.mongoose.ui.config.storage.StorageConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 import com.emc.mongoose.ui.log.LogUtil;
 import com.emc.mongoose.ui.log.Loggers;
+import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
+import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
 
 import com.github.akurilov.commons.io.IoUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
+import static com.github.akurilov.commons.io.IoUtil.REUSABLE_BUFF_SIZE_MAX;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CreateFlag;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DFSClient;
-import org.apache.hadoop.hdfs.DFSInputStream;
-import org.apache.hadoop.hdfs.DFSOutputStream;
-import org.apache.hadoop.hdfs.client.impl.DfsClientConf;
-import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -40,33 +43,29 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.ServerException;
-import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
-import static com.github.akurilov.commons.io.IoUtil.REUSABLE_BUFF_SIZE_MAX;
-
 public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
 extends NioStorageDriverBase<I, O> {
 
-	private final ConcurrentMap<String, DFSClient> endpoints = new ConcurrentHashMap<>();
+	public static final String DEFAULT_URI_SCHEMA = "hdfs";
+
+	private final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
 	private final String[] endpointAddrs;
 	private final AtomicInteger rrc = new AtomicInteger(0);
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, DFSInputStream>
+	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataInputStream>
 		fileInputStreams = new ConcurrentHashMap<>();
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, DFSOutputStream>
+	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataOutputStream>
 		fileOutputStreams = new ConcurrentHashMap<>();
 
 	private final Configuration hadoopConfig;
 	private final FsPermission defaultFsPerm;
-	private final EnumSet<CreateFlag> createFlags = EnumSet.of(CreateFlag.CREATE);
 
 	private int nodePort = -1;
 	private int inBuffSize = BUFF_SIZE_MIN;
@@ -117,8 +116,7 @@ extends NioStorageDriverBase<I, O> {
 		return endpointAddrs[rrc.getAndIncrement() % endpointAddrs.length];
 	}
 
-	@SuppressWarnings("JavaReflectionMemberAccess")
-	protected DFSClient getEndpoint(final String nodeAddr) {
+	protected FileSystem getEndpoint(final String nodeAddr) {
 		try {
 			final String addr;
 			final int port;
@@ -131,8 +129,8 @@ extends NioStorageDriverBase<I, O> {
 				port = nodePort;
 			}
 			final String uid = credential == null ? null : credential.getUid();
-			final URI endpointUri = new URI("hdfs", uid, addr, port, "/", null, null);
-			return new DFSClient(endpointUri, hadoopConfig);
+			final URI endpointUri = new URI(DEFAULT_URI_SCHEMA, uid, addr, port, "/", null, null);
+			return FileSystem.get(endpointUri, hadoopConfig);
 		} catch(final URISyntaxException | IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -149,27 +147,24 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	protected DFSOutputStream getCreateFileStream(
+	protected FSDataOutputStream getCreateFileStream(
 		final DataIoTask<? extends DataItem> createFileTask
 	) {
 		final String endpointAddr = createFileTask.getNodeAddr();
-		final DFSClient endpoint = endpoints.get(endpointAddr);
+		final FileSystem endpoint = endpoints.get(endpointAddr);
 		final String dstPath = createFileTask.getDstPath();
 		final DataItem fileItem = createFileTask.getItem();
 		final String fileName = fileItem.getName();
-		final String filePath;
+		final Path filePath;
 		if(dstPath == null || dstPath.isEmpty() || fileName.startsWith(dstPath)) {
-			filePath = fileName;
-		} else if(dstPath.endsWith("/")) {
-			filePath = dstPath + fileName;
+			filePath = new Path(fileName);
 		} else {
-			filePath = dstPath + "/" + fileName;
+			filePath = new Path(dstPath, fileName);
 		}
-		final DfsClientConf endpointConf = endpoint.getConf();
 		try {
 			return endpoint.create(
-				filePath, defaultFsPerm, createFlags, endpointConf.getDefaultReplication(),
-				fileItem.size(), null, outBuffSize, null
+				filePath, defaultFsPerm, false, outBuffSize, endpoint.getDefaultReplication(filePath), fileItem.size(),
+				null
 			);
 		} catch(final IOException e) {
 			createFileTask.setStatus(FAIL_IO);
@@ -177,27 +172,25 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	protected DFSInputStream getReadFileStream(
+	protected FSDataInputStream getReadFileStream(
 		final DataIoTask<? extends DataItem> fileIoTask
 	) {
 		final String endpointAddr = fileIoTask.getNodeAddr();
-		final DFSClient endpoint = endpoints.get(endpointAddr);
+		final FileSystem endpoint = endpoints.get(endpointAddr);
 		final String srcPath = fileIoTask.getSrcPath();
 		if(srcPath == null || srcPath.isEmpty()) {
 			return null;
 		}
 		final DataItem fileItem = fileIoTask.getItem();
 		final String fileName = fileItem.getName();
-		final String filePath;
+		final Path filePath;
 		if(fileName.startsWith(srcPath)) {
-			filePath = fileName;
-		} else if(srcPath.endsWith("/")) {
-			filePath = srcPath + fileName;
+			filePath = new Path(fileName);
 		} else {
-			filePath = srcPath + "/" + fileName;
+			filePath = new Path(srcPath, fileName);
 		}
 		try {
-			return endpoint.open(filePath, inBuffSize, false);
+			return endpoint.open(filePath, inBuffSize);
 		} catch(final IOException e) {
 			fileIoTask.setStatus(FAIL_IO);
 			throw new RuntimeException(e);
@@ -217,8 +210,8 @@ extends NioStorageDriverBase<I, O> {
 
 	private void invokeFileNio(final DataIoTask<? extends DataItem> fileIoTask) {
 		final IoType ioType = fileIoTask.getIoType();
-		DFSInputStream input = null;
-		DFSOutputStream output = null;
+		FSDataInputStream input = null;
+		FSDataOutputStream output = null;
 		try {
 			switch(ioType) {
 				case NOOP:
@@ -309,7 +302,7 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	protected void invokeFileCreate(
-		final DataIoTask<? extends DataItem> fileIoTask, final DFSOutputStream outputStream
+		final DataIoTask<? extends DataItem> fileIoTask, final FSDataOutputStream outputStream
 	) {
 		final DataItem fileItem = fileIoTask.getItem();
 		final long fileSize;
@@ -340,8 +333,8 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	protected void invokeFileCopy(
-		final DataIoTask<? extends DataItem> fileIoTask, final DFSInputStream inputStream,
-		final DFSOutputStream outputStream
+		final DataIoTask<? extends DataItem> fileIoTask, final FSDataInputStream inputStream,
+		final FSDataOutputStream outputStream
 	) {
 		long countBytesDone = fileIoTask.getCountBytesDone();
 		final long fileSize;
@@ -375,7 +368,7 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	protected void invokeFileRead(
-		final DataIoTask<? extends DataItem> fileIoTask, final DFSInputStream inputStream
+		final DataIoTask<? extends DataItem> fileIoTask, final FSDataInputStream inputStream
 	) {
 		final DataItem fileItem = fileIoTask.getItem();
 		final long fileSize;
@@ -385,7 +378,7 @@ extends NioStorageDriverBase<I, O> {
 			throw new AssertionError(e);
 		}
 		long countBytesDone = fileIoTask.getCountBytesDone();
-		final DFSInputStream input = fileInputStreams.computeIfAbsent(
+		final FSDataInputStream input = fileInputStreams.computeIfAbsent(
 			fileIoTask, this::getReadFileStream
 		);
 		try {
@@ -412,17 +405,15 @@ extends NioStorageDriverBase<I, O> {
 
 	protected void invokeFileDelete(final DataIoTask<? extends DataItem> fileIoTask) {
 		final String endpointAddr = fileIoTask.getNodeAddr();
-		final DFSClient endpoint = endpoints.get(endpointAddr);
+		final FileSystem endpoint = endpoints.get(endpointAddr);
 		final String dstPath = fileIoTask.getDstPath();
 		final DataItem fileItem = fileIoTask.getItem();
 		final String itemName = fileItem.getName();
-		final String filePath;
+		final Path filePath;
 		if(dstPath == null || dstPath.isEmpty() || itemName.startsWith(dstPath)) {
-			filePath = itemName;
-		} else if(dstPath.endsWith("/")) {
-			filePath = dstPath + itemName;
+			filePath = new Path(itemName);
 		} else {
-			filePath = dstPath + "/" + itemName;
+			filePath = new Path(dstPath, itemName);
 		}
 		try {
 			if(endpoint.delete(filePath, false)) {
@@ -467,20 +458,68 @@ extends NioStorageDriverBase<I, O> {
 		final I lastPrevItem, final int count
 	) throws IOException {
 
-		final DFSClient endpoint = endpoints.values().iterator().next();
-		final byte[] startAfter = lastPrevItem == null ?
-			null : lastPrevItem.getName().getBytes(StandardCharsets.UTF_8);
-		final HdfsFileStatus[] dirListing = endpoint
-			.listPaths(path, startAfter)
-			.getPartialListing();
+		final FileSystem endpoint = endpoints.values().iterator().next();
+		final RemoteIterator<LocatedFileStatus> it = endpoint.listFiles(new Path(path), false);
+		final List<I> items = new ArrayList<>(count);
+		final int prefixLen = prefix == null ? 0 : prefix.length();
 
-		HdfsFileStatus entry;
-		for(int i = 0; i < dirListing.length; i ++) {
-			entry = dirListing[i];
-			System.out.println(entry);
+		final String lastPrevItemName;
+		boolean lastPrevItemNameFound;
+		if(lastPrevItem == null) {
+			lastPrevItemName = null;
+			lastPrevItemNameFound = true;
+		} else {
+			lastPrevItemName = lastPrevItem.getName();
+			lastPrevItemNameFound = false;
 		}
 
-		return null;
+		long listedCount = 0;
+
+		LocatedFileStatus lfs;
+		Path nextPath;
+		String nextPathStr;
+		String nextName;
+		long nextSize;
+		long nextId;
+		I nextFile;
+
+		while(it.hasNext() && listedCount < count) {
+
+			lfs = it.next();
+			// skip directory entries
+			if(lfs.isDirectory()) {
+				continue;
+			}
+			nextPath = lfs.getPath();
+			nextPathStr = nextPath.toUri().getPath();
+			nextName = nextPath.getName();
+
+			if(!lastPrevItemNameFound) {
+				lastPrevItemNameFound = nextPathStr.equals(lastPrevItemName);
+				continue;
+			}
+
+			try {
+				if(prefixLen > 0) {
+					// skip all files which not start with the given prefix
+					if(!nextName.startsWith(prefix)) {
+						continue;
+					}
+					nextId = Long.parseLong(nextName.substring(prefixLen), idRadix);
+				} else {
+					nextId = Long.parseLong(nextName, idRadix);
+				}
+			} catch(final NumberFormatException e) {
+				// this allows to not to fail the listing even if it contains a file with incompatible name
+				nextId = 0; // fallback value
+			}
+			nextSize = lfs.getLen();
+			nextFile = itemFactory.getItem(nextPathStr, nextId, nextSize);
+			items.add(nextFile);
+			listedCount ++;
+		}
+
+		return items;
 	}
 
 	@Override
@@ -510,15 +549,15 @@ extends NioStorageDriverBase<I, O> {
 		super.doClose();
 
 		hadoopConfig.clear();
-		for(final DFSInputStream input: fileInputStreams.values()) {
+		for(final FSDataInputStream input: fileInputStreams.values()) {
 			input.close();
 		}
 		fileInputStreams.clear();
-		for(final DFSOutputStream output: fileOutputStreams.values()) {
+		for(final FSDataOutputStream output: fileOutputStreams.values()) {
 			output.close();
 		}
 		fileOutputStreams.clear();
-		for(final DFSClient endpoint: endpoints.values()) {
+		for(final FileSystem endpoint: endpoints.values()) {
 			endpoint.close();
 		}
 		endpoints.clear();
