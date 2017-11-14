@@ -32,10 +32,10 @@ repositories {
 ext {
 
 	depVersion = [
-		commonsJava: "[1.1.0,)",
+		commonsJava: "[1.2.0,)",
 		hadoop: "2.8.1",
 		log4j: "2.8.2",
-		mongoose: "[4.0.0-alpha5,)",
+		mongoose: "[3.6,)",
 	]
 
 	setClassPath = {
