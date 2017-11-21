@@ -43,6 +43,7 @@ and uses the following libraries:
         * concatenation - ?
     * `read`
     * `delete`
+    * `noop`
 
 # Usage
 
@@ -67,7 +68,7 @@ docker run \
     --entrypoint mongoose \
     emcmongoose/mongoose-storage-driver-hdfs \
     -jar /opt/mongoose/mongoose.jar \
-    --storage-type=fs \
+    --storage-type=hdfs \
     ...
 ```
 
