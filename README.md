@@ -1,12 +1,137 @@
-# Mongoose HDFS storage driver
+[![master](https://img.shields.io/travis/emc-mongoose/mongoose-storage-driver-hdfs/master.svg)](https://travis-ci.org/emc-mongoose/mongoose-storage-driver-hdfs)
+[![downloads](https://img.shields.io/github/downloads/emc-mongoose/mongoose-storage-driver-hdfs/total.svg)](https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases)
+[![release](https://img.shields.io/github/release/emc-mongoose/mongoose-storage-driver-hdfs.svg)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/emcmongoose/mongoose-storage-driver-hdfs.svg)](https://hub.docker.com/r/emcmongoose/mongoose-storage-driver-hdfs/)
 
-# Notes
+[Mongoose](https://github.com/emc-mongoose/mongoose-base)'s HDFS storage
+driver
+
+# Introduction
+
+The storage driver extends the Mongoose's [Abstract NIO Storage Driver](https://github.com/emc-mongoose/mongoose-base/wiki/v3.6-Extensions#22-nio-storage-driver)
+and uses the following libraries:
+* hadoop-common
+* hadoop-hdfs-client
+
+# Features
+
+* Authentification: login, Kerberos
+* SSL/TLS - ?
+* Item types:
+    * `data`
+    * `path`
+* Path listing input
+* Automatic destination path creation on demand
+* Data item operation types:
+    * `create`, additional modes:
+        * copy
+        * concatenation
+    * `read`
+        * full
+        * random byte ranges
+        * fixed byte ranges
+        * content verification
+    * `update`
+        * full (overwrite)
+        * random byte ranges
+        * fixed byte ranges (with append mode)
+    * `delete`
+    * `noop`
+* Path item operation types:
+    * `create`, additional modes:
+        * copy - ?
+        * concatenation - ?
+    * `read`
+    * `delete`
+
+# Usage
+
+Latest stable pre-built jar file is available at:
+https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/latest/mongoose-storage-driver-hdfs.jar
+This jar file may be downloaded manually and placed into the `ext`
+directory of Mongoose to be automatically loaded into the runtime.
+
+```bash
+java -jar mongoose-<VERSION>/mongoose.jar \
+    --storage-driver-type=hdfs \
+    ...
+```
+
+## Docker
+
+### Standalone
+
+```bash
+docker run \
+    --network host \
+    --entrypoint mongoose \
+    emcmongoose/mongoose-storage-driver-hdfs \
+    -jar /opt/mongoose/mongoose.jar \
+    --storage-type=fs \
+    ...
+```
+
+### Distributed
+
+#### Drivers
+
+```bash
+docker run \
+    --network host \
+    --expose 1099 \
+    emcmongoose/mongoose-storage-driver-service-hdfs
+```
+
+#### Controller
+
+```bash
+docker run \
+    --network host \
+    --entrypoint mongoose \
+    emcmongoose/mongoose-base \
+    -jar /opt/mongoose/mongoose.jar \
+    --storage-driver-remote \
+    --storage-driver-addrs=<ADDR1,ADDR2,...> \
+    --storage-driver-type=hdfs \
+    ...
+```
+
+## Advanced
+
+### Sources
+
+```bash
+git clone https://github.com/emc-mongoose/mongoose-storage-driver-hdfs.git
+cd mongoose-storage-driver-hdfs
+```
+
+### Test
+
+```
+./gradlew clean test
+```
+
+### Build
+
+```bash
+
+./gradlew clean jar
+```
+
+### Embedding
+
+```groovy
+compile group: 'com.github.emc-mongoose', name: 'mongoose-storage-driver-hdfs', version: '<VERSION>'
+```
+
+
+### Notes
 
 Node's FS browser is available at default port #50070
 
 HDFS default port #9000
 
-## Basic Testing
+#### Basic Testing
 
 1. Run the pseudo distributed HDFS cluster
 ```bash
@@ -23,7 +148,7 @@ either use the Docker image with HDFS support.
 
 5. Run some Mongoose test, for example:
 ```bash
-java -jar mongoose-4.0.0/mongoose.jar \
+java -jar mongoose-<VER>/mongoose.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \
@@ -35,7 +160,7 @@ java -jar mongoose-4.0.0/mongoose.jar \
     --test-step-limit-count=100
 ```
 
-# Operations
+### Operations
 
 The information below describes which particular methods are invoked
 on the endpoint in each case. The endpoint hereafter is a
@@ -45,15 +170,15 @@ instance.
 The item types `data` and `path` are supported.
 `token` type is not supported.
 
-## Data
+#### Data
 
 Operations on the data are implemented as file operations
 
-### Noop
+##### Noop
 
 Doesn't invoke anything.
 
-### Create
+##### Create
 
 If size is 0 then `createNewFile(Path f)` is invoked (returning
 true/false).
@@ -62,88 +187,88 @@ Otherwise, `create(Path f, false, int bufferSize)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data.
 
-#### Copy
+###### Copy
 
 Uses both `create` and `open` methods to obtain output and input streams
 
-#### Concatenation
+###### Concatenation
 
 `concat(Path dst, Path[] srcs)` is invoked (doesn't return anything).
 
 Note:
 > source files ranges concatenation is not supported.
 
-### Read
+##### Read
 
 `open(Path f, int bufferSize)` is invoked. The returned
 `FSDataInputStream` instance is used then to read the data.
 
-#### Partial
+###### Partial
 
 The same method used as above, because the `FSDataInputStream` supports
 the positioning needed for the partial read.
 
-##### Random Ranges
+**Random Ranges**
 
 No additional info.
 
-##### Fixed Ranges
+**Fixed Ranges**
 
 No additional info.
 
-### Update
+##### Update
 
-#### Overwrite
+###### Overwrite
 
 `create(Path f, true, int bufferSize)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data.
 
-#### Random Ranges
+###### Random Ranges
 
 `create(Path f, true, int bufferSize)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data at the calculated positions.
 
-#### Fixed Ranges
+###### Fixed Ranges
 
 `create(Path f, true, int bufferSize)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data at the calculated positions.
 
-##### Append
+**Append**
 
 `append(Path f, int bufferSize)` is invoked.
 
-### Delete
+##### Delete
 
 `delete(Path f, false)` is invoked.
 
-## Path
+#### Path
 
 Operations on the path are implemented as directory operations
 
-### Create
+##### Create
 
 `mkdirs(Path)`
 
-#### Copy
+###### Copy
 
 TODO
 
-#### Concatenation
+###### Concatenation
 
 TODO
 
-### Read
+##### Read
 
 `listFiles(Path f, false)` is invoked returning the `RemoteIterator`
 instance which is used to iterate the directory contents.
 
-### Delete
+##### Delete
 
 `delete(Path f, true)` is invoked.
 
-## Token
+#### Token
 
 Not supported
