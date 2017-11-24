@@ -385,10 +385,10 @@ extends NioStorageDriverBase<I, O> {
 			long remainingBytes = fileSize - countBytesDone;
 			if(remainingBytes > 0) {
 				if(verifyFlag) {
-					countBytesDone += fileItem.readAndVerify(input, remainingBytes);
+					//countBytesDone += fileItem.readAndVerify(input, remainingBytes);
 					fileIoTask.setCountBytesDone(countBytesDone);
 				} else {
-					input.read
+					//input.read
 				}
 			} else {
 				finishIoTask((O) fileIoTask);

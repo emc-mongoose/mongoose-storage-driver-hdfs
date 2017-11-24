@@ -1,11 +1,5 @@
 description = "HDFS storage driver for Mongoose"
 
-buildscript {
-	repositories {
-		mavenCentral()
-	}
-}
-
 apply plugin: "java"
 apply plugin: "maven"
 apply plugin: "signing"
@@ -33,9 +27,11 @@ ext {
 
 	depVersion = [
 		commonsJava: "[1.2.0,)",
+		disruptor: "3.3.4",
+		dockerJava: "[3.0.13,)",
 		hadoop: "2.8.1",
 		log4j: "2.8.2",
-		mongoose: "[3.6,)",
+		mongoose: "3.+",
 	]
 
 	setClassPath = {
@@ -64,13 +60,20 @@ dependencies {
 
 	runtime(
 		"org.apache.logging.log4j:log4j-jul:${depVersion.log4j}",
-		"org.apache.logging.log4j:log4j-slf4j-impl:${depVersion.log4j}",
 	)
 
 	testCompile(
 		"junit:junit:[4,)",
+		"com.github.docker-java:docker-java:${depVersion.dockerJava}",
+		"com.github.emc-mongoose:mongoose-storage-driver-nio:${depVersion.mongoose}",
+		"com.github.emc-mongoose:mongoose-ui:${depVersion.mongoose}",
+		"com.github.akurilov:java-commons:${depVersion.commonsJava}",
 		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
 		"org.apache.logging.log4j:log4j-core:${depVersion.log4j}",
+	)
+
+	testRuntime(
+		"com.lmax:disruptor:${depVersion.disruptor}",
 	)
 }
 
