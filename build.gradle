@@ -53,19 +53,17 @@ dependencies {
 		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
 	)
 
-	compile("org.apache.hadoop:hadoop-common:${depVersion.hadoop}") {
-		exclude group: "com.sun.jersey", module: "jersey-core"
-	}
-	compile("org.apache.hadoop:hadoop-common:${depVersion.hadoop}") {
-		exclude group: "com.sun.jersey", module: "jersey-json"
-	}
-	compile("org.apache.hadoop:hadoop-common:${depVersion.hadoop}") {
-		exclude group: "com.sun.jersey", module: "jersey-server"
-	}
-
 	compile(
+		"org.glassfish.jersey.core:jersey-common:2.23.1",
+		"org.glassfish.jersey.core:jersey-server:2.23.1",
 		"org.apache.hadoop:hadoop-hdfs-client:${depVersion.hadoop}",
 	)
+
+	compile("org.apache.hadoop:hadoop-common:${depVersion.hadoop}") {
+		exclude group: "com.sun.jersey", module: "jersey-core"
+		exclude group: "com.sun.jersey", module: "jersey-server"
+		exclude group: "javax.ws.rs", module: "jsr311-api"
+	}
 
 	runtime(
 		"org.apache.logging.log4j:log4j-jul:${depVersion.log4j}",

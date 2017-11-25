@@ -29,12 +29,12 @@ public class HdfsStorageDriverTest
 extends HdfsStorageDriver {
 
 	@ClassRule
-	public static final HdfsNodeContainerResource hdfsNode = new HdfsNodeContainerResource();
+	public static final HdfsNodeContainerResource HDFS_NODE = new HdfsNodeContainerResource();
 
-	private static final DataInput dataInput;
+	private static final DataInput DATA_INPUT;
 	static {
 		try {
-			dataInput = DataInput.getInstance(null, "7a42d9c483244167", new SizeInBytes("4MB"), 16);
+			DATA_INPUT = DataInput.getInstance(null, "7a42d9c483244167", new SizeInBytes("4MB"), 16);
 		} catch(final IOException e) {
 			throw new AssertionError(e);
 		}
@@ -98,15 +98,15 @@ extends HdfsStorageDriver {
 	private HdfsStorageDriverTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"test-storage-driver-hdfs", dataInput, config.getLoadConfig(),
+			"test-storage-driver-hdfs", DATA_INPUT, config.getLoadConfig(),
 			config.getStorageConfig(), false
 		);
 	}
 
 	@Test
-	public final void testGetEndpoint() {
-		final FileSystem fs = getEndpoint("127.0.0.1");
+	public final void testGetEndpoint()
+	throws Exception {
+		final FileSystem fs = getEndpoint("127.0.0.1:9000");
 		assertNotNull(fs);
-		System.out.println(fs.getCanonicalServiceName());
 	}
 }
