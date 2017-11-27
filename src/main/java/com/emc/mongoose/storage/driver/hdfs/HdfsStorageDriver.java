@@ -122,7 +122,7 @@ extends NioStorageDriverBase<I, O> {
 			final int port;
 			int portSepPos = nodeAddr.lastIndexOf(':');
 			if(portSepPos > 0) {
-				addr = nodeAddr.substring(portSepPos);
+				addr = nodeAddr.substring(0, portSepPos);
 				port = Integer.parseInt(nodeAddr.substring(portSepPos + 1));
 			} else {
 				addr = nodeAddr;
