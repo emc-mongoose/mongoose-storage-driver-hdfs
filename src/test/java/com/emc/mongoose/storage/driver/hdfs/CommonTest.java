@@ -3,6 +3,7 @@ package com.emc.mongoose.storage.driver.hdfs;
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
 import com.emc.mongoose.api.model.storage.Credential;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainerResource;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.load.LoadConfig;
 import com.emc.mongoose.ui.config.load.batch.BatchConfig;
@@ -16,16 +17,29 @@ import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 
 import com.github.akurilov.commons.system.SizeInBytes;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.IntStream;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class HdfsStorageDriverTest
+public class CommonTest
 extends HdfsStorageDriver {
 
 	@ClassRule
@@ -90,15 +104,15 @@ extends HdfsStorageDriver {
 		}
 	}
 
-	public HdfsStorageDriverTest()
+	public CommonTest()
 	throws OmgShootMyFootException {
 		this(getConfig());
 	}
 
-	private HdfsStorageDriverTest(final Config config)
+	private CommonTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"test-storage-driver-hdfs", DATA_INPUT, config.getLoadConfig(),
+			"test-common-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
 			config.getStorageConfig(), false
 		);
 	}
@@ -108,5 +122,35 @@ extends HdfsStorageDriver {
 	throws Exception {
 		final FileSystem fs = getEndpoint("127.0.0.1:9000");
 		assertNotNull(fs);
+	}
+
+	@Test
+	public final void testDirectoryListing()
+	throws Exception {
+
+		final FileSystem fs = getEndpoint("127.0.0.1:9000");
+		final String parentDirPath = "/default";
+		final int fileCount = 4321;
+		final int fileSize = 0x10_00_00;
+		final byte[] fileContent = new byte[fileSize];
+		for(int i = 0; i < fileSize; i ++) {
+			fileContent[i] = (byte) System.nanoTime();
+		}
+
+		Path dstFilePath;
+		for(int i = 0; i < fileCount; i ++) {
+			dstFilePath = new Path(parentDirPath, Integer.toString(i));
+			try(
+				final FSDataOutputStream dstFileOutput = fs.create(
+					dstFilePath, defaultFsPerm, false, BUFF_SIZE_MIN, (short) 1, fileSize, null
+				)
+			) {
+				dstFileOutput.write(fileContent);
+			} catch(final IOException e) {
+				fail(e.getMessage());
+			}
+		}
+
+		assertTrue(true);
 	}
 }

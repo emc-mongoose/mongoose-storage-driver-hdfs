@@ -65,7 +65,7 @@ extends NioStorageDriverBase<I, O> {
 		fileOutputStreams = new ConcurrentHashMap<>();
 
 	private final Configuration hadoopConfig;
-	private final FsPermission defaultFsPerm;
+	protected final FsPermission defaultFsPerm;
 
 	private int nodePort = -1;
 	private int inBuffSize = BUFF_SIZE_MIN;

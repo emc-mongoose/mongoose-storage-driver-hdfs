@@ -1,11 +1,14 @@
-package com.emc.mongoose.storage.driver.hdfs;
+package com.emc.mongoose.storage.driver.hdfs.util;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 
 import org.junit.rules.ExternalResource;
+
+import java.util.concurrent.TimeUnit;
 
 public class HdfsNodeContainerResource
 extends ExternalResource {
@@ -24,13 +27,20 @@ extends ExternalResource {
 			.pullImageCmd(IMAGE_NAME)
 			.exec(new PullImageResultCallback())
 			.awaitCompletion();
-		final CreateContainerResponse container = DOCKER_CLIENT
-			.createContainerCmd(IMAGE_NAME)
-			.withName("hdfs_node")
-			.withNetworkMode("host")
-			.exec();
-		containerId = container.getId();
-		DOCKER_CLIENT.startContainerCmd(containerId).exec();
+		try {
+			final CreateContainerResponse container = DOCKER_CLIENT
+				.createContainerCmd(IMAGE_NAME)
+				.withName("hdfs_node")
+				.withNetworkMode("host")
+				.withAttachStderr(true)
+				.withAttachStdout(true)
+				.exec();
+			containerId = container.getId();
+			DOCKER_CLIENT.startContainerCmd(containerId).exec();
+			TimeUnit.SECONDS.sleep(10);
+		} catch(final ConflictException e) {
+			System.err.println("Container \"hdfs_node\" already exists");
+		}
 
 	}
 
