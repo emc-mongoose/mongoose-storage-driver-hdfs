@@ -14,7 +14,7 @@ public class HdfsNodeContainerResource
 extends ExternalResource {
 
 	protected static final String IMAGE_NAME = "dockerq/docker-hdfs";
-	protected static final int PORT = 9000;
+	public static final int PORT = 9000;
 	private static final DockerClient DOCKER_CLIENT = DockerClientBuilder.getInstance().build();
 
 	private String containerId = null;
@@ -37,7 +37,7 @@ extends ExternalResource {
 				.exec();
 			containerId = container.getId();
 			DOCKER_CLIENT.startContainerCmd(containerId).exec();
-			TimeUnit.SECONDS.sleep(10);
+			TimeUnit.SECONDS.sleep(15);
 		} catch(final ConflictException e) {
 			System.err.println("Container \"hdfs_node\" already exists");
 		}

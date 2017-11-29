@@ -2,6 +2,10 @@ package com.emc.mongoose.storage.driver.hdfs;
 
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
+import com.emc.mongoose.api.model.item.BasicDataItemFactory;
+import com.emc.mongoose.api.model.item.DataItem;
+import com.emc.mongoose.api.model.item.Item;
+import com.emc.mongoose.api.model.item.ItemFactory;
 import com.emc.mongoose.api.model.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainerResource;
 import com.emc.mongoose.ui.config.Config;
@@ -20,24 +24,19 @@ import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class CommonTest
 extends HdfsStorageDriver {
@@ -85,7 +84,7 @@ extends HdfsStorageDriver {
 			final NodeConfig nodeConfig = new NodeConfig();
 			netConfig.setNodeConfig(nodeConfig);
 			nodeConfig.setAddrs(Collections.singletonList("127.0.0.1"));
-			nodeConfig.setPort(9024);
+			nodeConfig.setPort(HdfsNodeContainerResource.PORT);
 			nodeConfig.setConnAttemptsLimit(0);
 			final AuthConfig authConfig = new AuthConfig();
 			storageConfig.setAuthConfig(authConfig);
@@ -120,15 +119,16 @@ extends HdfsStorageDriver {
 	@Test
 	public final void testGetEndpoint()
 	throws Exception {
-		final FileSystem fs = getEndpoint("127.0.0.1:9000");
+		final FileSystem fs = getEndpoint("127.0.0.1");
 		assertNotNull(fs);
+		fs.close();
 	}
 
 	@Test
 	public final void testDirectoryListing()
 	throws Exception {
 
-		final FileSystem fs = getEndpoint("127.0.0.1:9000");
+		final FileSystem fs = (FileSystem) endpoints.values().iterator().next();
 		final String parentDirPath = "/default";
 		final int fileCount = 4321;
 		final int fileSize = 0x10_00_00;
@@ -137,20 +137,54 @@ extends HdfsStorageDriver {
 			fileContent[i] = (byte) System.nanoTime();
 		}
 
-		Path dstFilePath;
-		for(int i = 0; i < fileCount; i ++) {
-			dstFilePath = new Path(parentDirPath, Integer.toString(i));
-			try(
-				final FSDataOutputStream dstFileOutput = fs.create(
-					dstFilePath, defaultFsPerm, false, BUFF_SIZE_MIN, (short) 1, fileSize, null
-				)
-			) {
-				dstFileOutput.write(fileContent);
-			} catch(final IOException e) {
-				fail(e.getMessage());
-			}
-		}
+		long n = IntStream
+			.range(0, fileCount)
+			.parallel()
+			.mapToObj(Integer::toString)
+			.peek(
+				fileName -> {
+					final Path dstFilePath = new Path(parentDirPath, fileName);
+					try(
+						final FSDataOutputStream dstFileOutput = fs.create(
+							dstFilePath, defaultFsPerm, false, BUFF_SIZE_MIN, (short) 1, fileSize,
+							null
+						)
+					) {
+						dstFileOutput.write(fileContent);
+					} catch(final IOException e) {
+						System.err.println(
+							"Failure while writing the file \"" + dstFilePath + "\": "
+								+ e.getMessage()
+						);
+					}
+				}
+			)
+			.count();
 
-		assertTrue(true);
+		final ItemFactory<DataItem> dataItemFactory = new BasicDataItemFactory<>();
+		final List<DataItem> listedItems = list(
+			dataItemFactory, parentDirPath, null, 10, null, fileCount
+		);
+
+		assertEquals(fileCount, listedItems.size());
+		n = listedItems
+			.parallelStream()
+			.peek(
+				dataItem -> {
+					try {
+						assertEquals(fileSize, dataItem.size());
+					} catch(final IOException ignored) {
+					}
+				}
+			)
+			.map(Item::getName)
+			.peek(
+				dataItemName ->
+					assertTrue(
+						Integer.parseInt(dataItemName.substring(dataItemName.lastIndexOf('/') + 1))
+							< fileCount
+					)
+			)
+			.count();
 	}
 }

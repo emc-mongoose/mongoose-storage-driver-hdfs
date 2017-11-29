@@ -2,7 +2,11 @@ package com.emc.mongoose.storage.driver.hdfs;
 
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
+import com.emc.mongoose.api.model.io.IoType;
+import com.emc.mongoose.api.model.io.task.IoTask;
+import com.emc.mongoose.api.model.io.task.data.BasicDataIoTask;
 import com.emc.mongoose.api.model.io.task.data.DataIoTask;
+import com.emc.mongoose.api.model.item.BasicDataItem;
 import com.emc.mongoose.api.model.item.DataItem;
 import com.emc.mongoose.api.model.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainerResource;
@@ -17,11 +21,18 @@ import com.emc.mongoose.ui.config.storage.driver.queue.QueueConfig;
 import com.emc.mongoose.ui.config.storage.net.NetConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 import com.github.akurilov.commons.system.SizeInBytes;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+
+import static com.emc.mongoose.api.common.Constants.MIB;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class DataOperationsTest
 extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
@@ -69,7 +80,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			final NodeConfig nodeConfig = new NodeConfig();
 			netConfig.setNodeConfig(nodeConfig);
 			nodeConfig.setAddrs(Collections.singletonList("127.0.0.1"));
-			nodeConfig.setPort(9024);
+			nodeConfig.setPort(HdfsNodeContainerResource.PORT);
 			nodeConfig.setConnAttemptsLimit(0);
 			final AuthConfig authConfig = new AuthConfig();
 			storageConfig.setAuthConfig(authConfig);
@@ -105,12 +116,62 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	public final void testCreateFile()
 	throws Exception {
 
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("0000");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		createTask.setNodeAddr(endpoints.keySet().iterator().next());
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
+		assertEquals(dataItem.size(), createTask.getCountBytesDone());
+
+		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileStatus fileStatus = endpoint.getFileStatus(
+			new Path("/default", dataItem.getName())
+		);
+		assertTrue(fileStatus.isFile());
+		assertEquals(dataItem.size(), fileStatus.getLen());
 	}
 
 	@Test
 	public final void testCopyFile()
 	throws Exception {
 
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("0000");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		createTask.setNodeAddr(endpoints.keySet().iterator().next());
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
+
+		final DataIoTask<DataItem> copyTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, createTask.getDstPath(), "/copies", CREDENTIAL,
+			null, 0, null
+		);
+		copyTask.setNodeAddr(endpoints.keySet().iterator().next());
+		copyTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(copyTask.getStatus())) {
+			invokeNio(copyTask);
+		}
+		assertEquals(IoTask.Status.SUCC, copyTask.getStatus());
+
+		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileStatus fileStatus = endpoint.getFileStatus(
+			new Path("/copies", dataItem.getName())
+		);
+		assertTrue(fileStatus.isFile());
+		assertEquals(dataItem.size(), fileStatus.getLen());
 	}
 
 	@Test

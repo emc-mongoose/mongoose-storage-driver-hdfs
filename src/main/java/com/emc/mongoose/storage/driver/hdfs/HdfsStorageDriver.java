@@ -56,7 +56,7 @@ extends NioStorageDriverBase<I, O> {
 
 	public static final String DEFAULT_URI_SCHEMA = "hdfs";
 
-	private final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
+	protected final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
 	private final String[] endpointAddrs;
 	private final AtomicInteger rrc = new AtomicInteger(0);
 	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataInputStream>
@@ -218,12 +218,21 @@ extends NioStorageDriverBase<I, O> {
 					invokeNoop((O) fileIoTask);
 					break;
 				case CREATE:
-					input = fileInputStreams.computeIfAbsent(fileIoTask, this::getReadFileStream);
-					output = fileOutputStreams.computeIfAbsent(fileIoTask, this::getCreateFileStream);
-					if(input == null) {
-						invokeFileCreate(fileIoTask, output);
+					final List<? extends DataItem> srcItems = fileIoTask.getSrcItemsToConcat();
+					if(srcItems != null) {
+
 					} else {
-						invokeFileCopy(fileIoTask, input, output);
+						input = fileInputStreams.computeIfAbsent(
+							fileIoTask, this::getReadFileStream
+						);
+						output = fileOutputStreams.computeIfAbsent(
+							fileIoTask, this::getCreateFileStream
+						);
+						if(input != null) {
+							invokeFileCopy(fileIoTask, input, output);
+						} else {
+							invokeFileCreate(fileIoTask, output);
+						}
 					}
 					break;
 				case READ:
@@ -364,6 +373,40 @@ extends NioStorageDriverBase<I, O> {
 		}
 		if(countBytesDone == fileSize) {
 			finishIoTask((O) fileIoTask);
+		}
+	}
+
+	protected void invokeFileConcat(
+		final DataIoTask<? extends DataItem> fileIoTask, final List<? extends DataItem> srcItems,
+		final FileSystem endpoint
+	) {
+		final int srcItemsCount = srcItems.size();
+		final Path[] srcPaths = new Path[srcItems.size()];
+		for(int i = 0; i < srcItemsCount; i ++) {
+			srcPaths[i] = new Path(srcItems.get(i).getName());
+		}
+		final String dstPath = fileIoTask.getDstPath();
+		final DataItem fileItem = fileIoTask.getItem();
+		final String fileName = fileItem.getName();
+		final Path dstFilePath;
+		if(dstPath == null || dstPath.isEmpty() || fileName.startsWith(dstPath)) {
+			dstFilePath = new Path(fileName);
+		} else {
+			dstFilePath = new Path(dstPath, fileName);
+		}
+		try {
+			endpoint.concat(dstFilePath, srcPaths);
+			finishIoTask((O) fileIoTask);
+		} catch(final IOException e) {
+			fileIoTask.startResponse();
+			fileIoTask.finishResponse();
+			fileIoTask.setStatus(IoTask.Status.FAIL_IO);
+			LogUtil.exception(Level.DEBUG, e, "I/O task \"{}\" failure", fileIoTask);
+		} catch(final Throwable cause) {
+			fileIoTask.startResponse();
+			fileIoTask.finishResponse();
+			fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
+			LogUtil.exception(Level.DEBUG, cause, "I/O task \"{}\" failure", fileIoTask);
 		}
 	}
 
