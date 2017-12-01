@@ -5,7 +5,7 @@ import com.emc.mongoose.api.model.io.task.path.PathIoTask;
 import com.emc.mongoose.api.model.item.ItemType;
 import com.emc.mongoose.api.model.item.PathItem;
 import com.emc.mongoose.api.model.storage.Credential;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainerResource;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.item.ItemConfig;
 import com.emc.mongoose.ui.config.load.LoadConfig;
@@ -27,7 +27,7 @@ public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 
 	@ClassRule
-	public static final HdfsNodeContainerResource HDFS_NODE = new HdfsNodeContainerResource();
+	public static final HdfsNodeContainer HDFS_NODE = new HdfsNodeContainer();
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
 

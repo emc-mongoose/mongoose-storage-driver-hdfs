@@ -7,7 +7,7 @@ import com.emc.mongoose.api.model.item.DataItem;
 import com.emc.mongoose.api.model.item.Item;
 import com.emc.mongoose.api.model.item.ItemFactory;
 import com.emc.mongoose.api.model.storage.Credential;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainerResource;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.load.LoadConfig;
 import com.emc.mongoose.ui.config.load.batch.BatchConfig;
@@ -29,7 +29,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -42,7 +41,7 @@ public class CommonTest
 extends HdfsStorageDriver {
 
 	@ClassRule
-	public static final HdfsNodeContainerResource HDFS_NODE = new HdfsNodeContainerResource();
+	public static final HdfsNodeContainer HDFS_NODE = new HdfsNodeContainer();
 
 	private static final DataInput DATA_INPUT;
 	static {
@@ -84,7 +83,7 @@ extends HdfsStorageDriver {
 			final NodeConfig nodeConfig = new NodeConfig();
 			netConfig.setNodeConfig(nodeConfig);
 			nodeConfig.setAddrs(Collections.singletonList("127.0.0.1"));
-			nodeConfig.setPort(HdfsNodeContainerResource.PORT);
+			nodeConfig.setPort(HdfsNodeContainer.PORT);
 			nodeConfig.setConnAttemptsLimit(0);
 			final AuthConfig authConfig = new AuthConfig();
 			storageConfig.setAuthConfig(authConfig);

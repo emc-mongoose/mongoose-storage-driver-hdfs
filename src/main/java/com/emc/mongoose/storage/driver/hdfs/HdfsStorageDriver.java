@@ -147,6 +147,14 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
+	private Path getFilePath(final String basePath, final String fileName) {
+		if(basePath == null || basePath.isEmpty() || fileName.startsWith(basePath)) {
+			return new Path(fileName);
+		} else {
+			return new Path(basePath, fileName);
+		}
+	}
+
 	protected FSDataOutputStream getCreateFileStream(
 		final DataIoTask<? extends DataItem> createFileTask
 	) {
@@ -155,16 +163,11 @@ extends NioStorageDriverBase<I, O> {
 		final String dstPath = createFileTask.getDstPath();
 		final DataItem fileItem = createFileTask.getItem();
 		final String fileName = fileItem.getName();
-		final Path filePath;
-		if(dstPath == null || dstPath.isEmpty() || fileName.startsWith(dstPath)) {
-			filePath = new Path(fileName);
-		} else {
-			filePath = new Path(dstPath, fileName);
-		}
+		final Path filePath = getFilePath(dstPath, fileName);
 		try {
 			return endpoint.create(
-				filePath, defaultFsPerm, false, outBuffSize, endpoint.getDefaultReplication(filePath), fileItem.size(),
-				null
+				filePath, defaultFsPerm, false, outBuffSize,
+				endpoint.getDefaultReplication(filePath), fileItem.size(), null
 			);
 		} catch(final IOException e) {
 			createFileTask.setStatus(FAIL_IO);
@@ -183,12 +186,7 @@ extends NioStorageDriverBase<I, O> {
 		}
 		final DataItem fileItem = fileIoTask.getItem();
 		final String fileName = fileItem.getName();
-		final Path filePath;
-		if(fileName.startsWith(srcPath)) {
-			filePath = new Path(fileName);
-		} else {
-			filePath = new Path(srcPath, fileName);
-		}
+		final Path filePath = getFilePath(srcPath, fileName);
 		try {
 			return endpoint.open(filePath, inBuffSize);
 		} catch(final IOException e) {
@@ -220,7 +218,9 @@ extends NioStorageDriverBase<I, O> {
 				case CREATE:
 					final List<? extends DataItem> srcItems = fileIoTask.getSrcItemsToConcat();
 					if(srcItems != null) {
-
+						invokeFileConcat(
+							fileIoTask, srcItems, endpoints.get(getNextEndpointAddr())
+						);
 					} else {
 						input = fileInputStreams.computeIfAbsent(
 							fileIoTask, this::getReadFileStream
@@ -380,21 +380,29 @@ extends NioStorageDriverBase<I, O> {
 		final DataIoTask<? extends DataItem> fileIoTask, final List<? extends DataItem> srcItems,
 		final FileSystem endpoint
 	) {
+
+		final String dstPath = fileIoTask.getDstPath();
 		final int srcItemsCount = srcItems.size();
 		final Path[] srcPaths = new Path[srcItems.size()];
-		for(int i = 0; i < srcItemsCount; i ++) {
-			srcPaths[i] = new Path(srcItems.get(i).getName());
-		}
-		final String dstPath = fileIoTask.getDstPath();
 		final DataItem fileItem = fileIoTask.getItem();
 		final String fileName = fileItem.getName();
-		final Path dstFilePath;
-		if(dstPath == null || dstPath.isEmpty() || fileName.startsWith(dstPath)) {
-			dstFilePath = new Path(fileName);
-		} else {
-			dstFilePath = new Path(dstPath, fileName);
-		}
+		final Path dstFilePath = getFilePath(dstPath, fileName);
+		DataItem srcItem;
+		long dstItemSize = 0;
+
 		try {
+			for(int i = 0; i < srcItemsCount; i ++) {
+				srcItem = srcItems.get(i);
+				srcPaths[i] = getFilePath(dstPath, srcItem.getName());
+				dstItemSize += srcItem.size();
+			}
+			endpoint
+				.create(
+					dstFilePath, defaultFsPerm, false, 0,
+					endpoint.getDefaultReplication(dstFilePath),
+					endpoint.getConf().getInt("dfs.namenode.fs-limits.min-block-size", 1), null
+				)
+				.close();
 			endpoint.concat(dstFilePath, srcPaths);
 			finishIoTask((O) fileIoTask);
 		} catch(final IOException e) {
