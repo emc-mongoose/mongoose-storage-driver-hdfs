@@ -18,6 +18,8 @@ import com.emc.mongoose.ui.config.storage.driver.queue.QueueConfig;
 import com.emc.mongoose.ui.config.storage.net.NetConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 import com.github.akurilov.commons.system.SizeInBytes;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -25,9 +27,6 @@ import java.util.Collections;
 
 public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
-
-	@ClassRule
-	public static final HdfsNodeContainer HDFS_NODE = new HdfsNodeContainer();
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
 
@@ -93,6 +92,18 @@ extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 			"test-path-hdfs-driver", null, config.getLoadConfig(), config.getStorageConfig(),
 			false
 		);
+	}
+
+	@BeforeClass
+	public static void setUpClass()
+	throws Exception {
+		HdfsNodeContainer.setUpClass();
+	}
+
+	@AfterClass
+	public static void tearDownClass()
+	throws Exception {
+		HdfsNodeContainer.tearDownClass();
 	}
 
 	@Test

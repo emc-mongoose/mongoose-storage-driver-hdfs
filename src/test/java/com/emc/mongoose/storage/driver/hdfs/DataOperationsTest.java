@@ -27,8 +27,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -40,6 +40,7 @@ import java.util.stream.IntStream;
 
 import static com.emc.mongoose.api.common.Constants.MIB;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class DataOperationsTest
@@ -117,14 +118,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		);
 	}
 
-	@BeforeClass
-	public static void setUpClass()
+	@Before
+	public void setUp()
 	throws Exception {
 		HdfsNodeContainer.setUpClass();
 	}
 
-	@AfterClass
-	public static void tearDownClass()
+	@After
+	public void tearDown()
 	throws Exception {
 		HdfsNodeContainer.tearDownClass();
 	}
@@ -191,7 +192,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		assertEquals(dataItem.size(), fileStatus.getLen());
 	}
 
-	@Test
+	@Test @Ignore
 	public final void testConcatFile()
 	throws Exception {
 
@@ -282,9 +283,35 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testDeleteFile()
 	throws Exception {
 
+		final FileSystem endpoint = endpoints.values().iterator().next();
+
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("0000");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
+		assertTrue(endpoint.exists(new Path("/default", dataItem.getName())));
+
+		final DataIoTask<DataItem> deleteTask = new BasicDataIoTask<>(
+			0, IoType.DELETE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(deleteTask);
+		deleteTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(deleteTask.getStatus())) {
+			invokeNio(deleteTask);
+		}
+		assertEquals(IoTask.Status.SUCC, deleteTask.getStatus());
+		assertFalse(endpoint.exists(new Path("/default", dataItem.getName())));
 	}
 }

@@ -25,6 +25,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -39,9 +41,6 @@ import static org.junit.Assert.assertTrue;
 
 public class CommonTest
 extends HdfsStorageDriver {
-
-	@ClassRule
-	public static final HdfsNodeContainer HDFS_NODE = new HdfsNodeContainer();
 
 	private static final DataInput DATA_INPUT;
 	static {
@@ -113,6 +112,18 @@ extends HdfsStorageDriver {
 			"test-common-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
 			config.getStorageConfig(), false
 		);
+	}
+
+	@BeforeClass
+	public static void setUpClass()
+	throws Exception {
+		HdfsNodeContainer.setUpClass();
+	}
+
+	@AfterClass
+	public static void tearDownClass()
+	throws Exception {
+		HdfsNodeContainer.tearDownClass();
 	}
 
 	@Test

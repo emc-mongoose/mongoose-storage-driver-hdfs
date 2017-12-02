@@ -399,8 +399,7 @@ extends NioStorageDriverBase<I, O> {
 			endpoint
 				.create(
 					dstFilePath, defaultFsPerm, false, 0,
-					endpoint.getDefaultReplication(dstFilePath),
-					endpoint.getConf().getInt("dfs.namenode.fs-limits.min-block-size", 1), null
+					endpoint.getDefaultReplication(dstFilePath), dstItemSize, null
 				)
 				.close();
 			endpoint.concat(dstFilePath, srcPaths);
@@ -429,14 +428,14 @@ extends NioStorageDriverBase<I, O> {
 			throw new AssertionError(e);
 		}
 		long countBytesDone = fileIoTask.getCountBytesDone();
-		final FSDataInputStream input = fileInputStreams.computeIfAbsent(
-			fileIoTask, this::getReadFileStream
-		);
 		try {
 			long remainingBytes = fileSize - countBytesDone;
 			if(remainingBytes > 0) {
 				if(verifyFlag) {
-					//countBytesDone += fileItem.readAndVerify(input, remainingBytes);
+					final ReadableByteChannel input = IoUtil.getThreadLocalInputChannel(
+						inputStream, remainingBytes
+					);
+					countBytesDone += fileItem.readAndVerify(input, remainingBytes);
 					fileIoTask.setCountBytesDone(countBytesDone);
 				} else {
 					//input.read
