@@ -434,6 +434,7 @@ extends NioStorageDriverBase<I, O> {
 			long remainingBytes = fileSize - countBytesDone;
 			if(remainingBytes > 0) {
 				if(verifyFlag) {
+					inputStream.read(ByteBuffer.allocate(0));
 					throw new IOException();
 				} else {
 
