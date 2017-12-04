@@ -21,9 +21,12 @@ import com.emc.mongoose.ui.log.Loggers;
 import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
 import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
 
-import com.github.akurilov.commons.io.IoUtil;
+import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
+import com.github.akurilov.commons.io.util.BufferedReadableByteChannel;
+import com.github.akurilov.commons.io.util.BufferedWritableByteChannel;
+import com.github.akurilov.commons.io.util.InputStreamWrapperChannel;
+import com.github.akurilov.commons.io.util.OutputStreamWrapperChannel;
 import com.github.akurilov.commons.system.SizeInBytes;
-import static com.github.akurilov.commons.io.IoUtil.REUSABLE_BUFF_SIZE_MAX;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -41,8 +44,7 @@ import org.apache.logging.log4j.Level;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
+import java.nio.ByteBuffer;
 import java.rmi.RemoteException;
 import java.rmi.ServerException;
 import java.util.ArrayList;
@@ -324,7 +326,7 @@ extends NioStorageDriverBase<I, O> {
 		try {
 			long remainingBytes = fileSize - countBytesDone;
 			if(remainingBytes > 0) {
-				final WritableByteChannel outputChan = IoUtil.getThreadLocalOutputChannel(
+				final BufferedWritableByteChannel outputChan = OutputStreamWrapperChannel.getThreadLocalInstance(
 					outputStream, remainingBytes
 				);
 				countBytesDone += fileItem.writeToSocketChannel(outputChan, remainingBytes);
@@ -432,18 +434,12 @@ extends NioStorageDriverBase<I, O> {
 			long remainingBytes = fileSize - countBytesDone;
 			if(remainingBytes > 0) {
 				if(verifyFlag) {
-					final ReadableByteChannel input = IoUtil.getThreadLocalInputChannel(
-						inputStream, remainingBytes
-					);
-					countBytesDone += fileItem.readAndVerify(input, remainingBytes);
-					fileIoTask.setCountBytesDone(countBytesDone);
+					throw new IOException();
 				} else {
-					//input.read
+
 				}
 			} else {
 				finishIoTask((O) fileIoTask);
-				fileOutputStreams.remove(fileIoTask);
-				input.close();
 			}
 		} catch(final IOException e) {
 			LogUtil.exception(Level.DEBUG, e, "Failed to read the file: {}" + fileItem.getName());

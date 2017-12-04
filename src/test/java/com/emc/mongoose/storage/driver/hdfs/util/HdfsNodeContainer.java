@@ -6,7 +6,6 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 
 import java.util.concurrent.TimeUnit;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class HdfsNodeContainer {
@@ -16,15 +15,21 @@ public class HdfsNodeContainer {
 	private static final String IMAGE_NAME = "dockerq/docker-hdfs";
 	private static final DockerClient DOCKER_CLIENT = DockerClientBuilder.getInstance().build();
 
+	private static boolean NEW_IMAGE_PULLED = false;
 	private static String CONTAINER_ID = null;
 
 	public static void setUpClass()
 	throws Exception {
-		LOG.info("docker pull " + IMAGE_NAME + "...");
-		DOCKER_CLIENT
-			.pullImageCmd(IMAGE_NAME)
-			.exec(new PullImageResultCallback())
-			.awaitCompletion();
+		if(NEW_IMAGE_PULLED) {
+			LOG.info("Reusing the pulled image: " + IMAGE_NAME);
+		} else {
+			LOG.info("docker pull " + IMAGE_NAME + "...");
+			DOCKER_CLIENT
+				.pullImageCmd(IMAGE_NAME)
+				.exec(new PullImageResultCallback())
+				.awaitSuccess();
+			NEW_IMAGE_PULLED = true;
+		}
 		final CreateContainerResponse container = DOCKER_CLIENT
 			.createContainerCmd(IMAGE_NAME)
 			.withName("hdfs_node")
