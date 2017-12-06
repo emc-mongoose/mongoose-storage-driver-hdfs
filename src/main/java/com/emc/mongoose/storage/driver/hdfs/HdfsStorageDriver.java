@@ -48,8 +48,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
-extends NioStorageDriverBase<I, O>
-implements IoTaskCallback {
+extends NioStorageDriverBase<I, O> {
 
 	public static final String DEFAULT_URI_SCHEMA = "hdfs";
 
@@ -154,8 +153,7 @@ implements IoTaskCallback {
 	protected FSDataOutputStream getCreateFileStream(
 		final DataIoTask<? extends DataItem> createFileTask
 	) {
-		final String endpointAddr = createFileTask.getNodeAddr();
-		final FileSystem endpoint = endpoints.get(endpointAddr);
+		final FileSystem endpoint = endpoints.get(createFileTask.getNodeAddr());
 		final String dstPath = createFileTask.getDstPath();
 		final DataItem fileItem = createFileTask.getItem();
 		final String fileName = fileItem.getName();
@@ -172,21 +170,20 @@ implements IoTaskCallback {
 	}
 
 	protected FSDataInputStream getReadFileStream(
-		final DataIoTask<? extends DataItem> fileIoTask
+		final DataIoTask<? extends DataItem> readFileTask
 	) {
-		final String endpointAddr = fileIoTask.getNodeAddr();
-		final FileSystem endpoint = endpoints.get(endpointAddr);
-		final String srcPath = fileIoTask.getSrcPath();
+		final FileSystem endpoint = endpoints.get(readFileTask.getNodeAddr());
+		final String srcPath = readFileTask.getSrcPath();
 		if(srcPath == null || srcPath.isEmpty()) {
 			return null;
 		}
-		final DataItem fileItem = fileIoTask.getItem();
+		final DataItem fileItem = readFileTask.getItem();
 		final String fileName = fileItem.getName();
 		final Path filePath = getFilePath(srcPath, fileName);
 		try {
 			return endpoint.open(filePath, inBuffSize);
 		} catch(final IOException e) {
-			fileIoTask.setStatus(FAIL_IO);
+			readFileTask.setStatus(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
@@ -194,8 +191,7 @@ implements IoTaskCallback {
 	protected FSDataOutputStream getUpdateFileStream(
 		final DataIoTask<? extends DataItem> updateFileTask
 	) {
-		final String endpointAddr = updateFileTask.getNodeAddr();
-		final FileSystem endpoint = endpoints.get(endpointAddr);
+		final FileSystem endpoint = endpoints.get(updateFileTask.getNodeAddr());
 		final String dstPath = updateFileTask.getDstPath();
 		final DataItem fileItem = updateFileTask.getItem();
 		final String fileName = fileItem.getName();
@@ -207,6 +203,23 @@ implements IoTaskCallback {
 			);
 		} catch(final IOException e) {
 			updateFileTask.setStatus(FAIL_IO);
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected FSDataOutputStream getAppendFileStream(
+		final DataIoTask<? extends DataItem> appendFileTask
+	) {
+		final String endpointAddr = appendFileTask.getNodeAddr();
+		final FileSystem endpoint = endpoints.get(endpointAddr);
+		final String dstPath = appendFileTask.getDstPath();
+		final DataItem fileItem = appendFileTask.getItem();
+		final String fileName = fileItem.getName();
+		final Path filePath = getFilePath(dstPath, fileName);
+		try {
+			return endpoint.append(filePath, outBuffSize);
+		} catch(final IOException e) {
+			appendFileTask.setStatus(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
@@ -323,24 +336,33 @@ implements IoTaskCallback {
 					break;
 
 				case UPDATE:
-					output = fileOutputStreams.computeIfAbsent(
-						fileIoTask, this::getUpdateFileStream
-					);
 					final List<Range> fixedRangesToUpdate = fileIoTask.getFixedRanges();
 					if(fixedRangesToUpdate == null || fixedRangesToUpdate.isEmpty()) {
 						if(fileIoTask.hasMarkedRanges()) {
 							throw new AssertionError("Not implemented");
-							/*UpdateHelper.invokeFileRandomRangesUpdate(
-								fileIoTask, fileItem, output, this
-							);*/
 						} else {
-							UpdateHelper.invokeFileOverwrite(fileIoTask, fileItem, output, this);
+							output = fileOutputStreams.computeIfAbsent(
+								fileIoTask, this::getUpdateFileStream
+							);
+							// overwrite
+							CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
 						}
 					} else {
-						throw new AssertionError("Not implemented");
-						/*UpdateHelper.invokeFileFixedRangesUpdate(
-							fileIoTask, fileItem, output, fixedRangesToUpdate, this
-						);*/
+						if(fixedRangesToUpdate.size() == 1) {
+							final Range appendRange = fixedRangesToUpdate.get(0);
+							if(appendRange.getSize() > 0) {
+								output = fileOutputStreams.computeIfAbsent(
+									fileIoTask, this::getAppendFileStream
+								);
+								UpdateHelper.invokeFileAppend(
+									fileIoTask, fileItem, output, appendRange, this
+								);
+							} else {
+								throw new AssertionError("Not implemented");
+							}
+						} else {
+							throw new AssertionError("Not implemented");
+						}
 					}
 					break;
 
@@ -417,8 +439,8 @@ implements IoTaskCallback {
 		}
 	}
 
-	@Override @SuppressWarnings("unchecked")
-	public final void notifyIoTaskFinish(final IoTask ioTask) {
+	@SuppressWarnings("unchecked")
+	final void notifyIoTaskFinish(final IoTask ioTask) {
 		super.finishIoTask((O) ioTask);
 	}
 

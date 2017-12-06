@@ -327,6 +327,8 @@ interface ReadHelper {
 			if(countBytesDone == currRangeSize) {
 				ioTask.setCurrRangeIdx(currRangeIdx + 1);
 				ioTask.setCountBytesDone(0);
+			} else {
+				ioTask.setCountBytesDone(countBytesDone);
 			}
 		} else {
 			driver.notifyIoTaskFinish(ioTask);

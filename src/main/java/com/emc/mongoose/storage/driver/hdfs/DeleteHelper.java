@@ -3,14 +3,10 @@ package com.emc.mongoose.storage.driver.hdfs;
 import com.emc.mongoose.api.model.io.task.IoTask;
 import com.emc.mongoose.api.model.io.task.data.DataIoTask;
 import com.emc.mongoose.api.model.item.DataItem;
-import com.emc.mongoose.ui.log.LogUtil;
 import com.emc.mongoose.ui.log.Loggers;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
-import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
 

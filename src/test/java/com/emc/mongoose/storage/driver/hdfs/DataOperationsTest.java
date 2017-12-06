@@ -21,6 +21,7 @@ import com.emc.mongoose.ui.config.storage.driver.queue.QueueConfig;
 import com.emc.mongoose.ui.config.storage.net.NetConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 
+import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.system.SizeInBytes;
 
 import org.apache.hadoop.fs.FileStatus;
@@ -33,6 +34,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -114,7 +116,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	throws OmgShootMyFootException {
 		super(
 			"test-data-hdfs-driver", DATA_INPUT, config.getLoadConfig(), config.getStorageConfig(),
-			false
+			true
 		);
 	}
 
@@ -161,7 +163,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	throws Exception {
 
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
-		dataItem.setName("0000");
+		dataItem.setName("1111");
 		dataItem.setDataInput(DATA_INPUT);
 		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
 			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
@@ -247,22 +249,95 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		assertEquals(srcItems.size() * MIB, fileStatus.getLen());
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testReadFullFile()
 	throws Exception {
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("2222");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
 
+		final DataIoTask<DataItem> readTask = new BasicDataIoTask<>(
+			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
+			null, 0, null
+		);
+		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
+			invokeNio(readTask);
+		}
+		assertEquals(IoTask.Status.SUCC, readTask.getStatus());
+		assertEquals(dataItem.size(), readTask.getCountBytesDone());
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testReadFixedRangesFile()
 	throws Exception {
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("3333");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
 
+		final List<Range> fixedRanges = new ArrayList<>();
+		fixedRanges.add(new Range(123, 456, -1));
+		fixedRanges.add(new Range(789, 1234, -1));
+		final DataIoTask<DataItem> readTask = new BasicDataIoTask<>(
+			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
+			fixedRanges, 0, null
+		);
+		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
+			invokeNio(readTask);
+		}
+		assertEquals(IoTask.Status.SUCC, readTask.getStatus());
+		assertEquals(456 - 123 + 1 + 1234 - 789 + 1, readTask.getCountBytesDone());
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testReadRandomRangesFile()
 	throws Exception {
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("4444");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
 
+		final DataIoTask<DataItem> readTask = new BasicDataIoTask<>(
+			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
+			null, 10, null
+		);
+		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
+			invokeNio(readTask);
+		}
+		assertEquals(IoTask.Status.SUCC, readTask.getStatus());
+		assertTrue(1023 < readTask.getCountBytesDone());
+		assertTrue(readTask.getCountBytesDone() < MIB);
 	}
 
 	@Test @Ignore
@@ -272,13 +347,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	}
 
 	@Test @Ignore
-	public final void testUpdateRandomRangesFile()
-	throws Exception {
-
-	}
-
-	@Test @Ignore
-	public final void testUpdateFixedRangesFile()
+	public final void testAppendFile()
 	throws Exception {
 
 	}

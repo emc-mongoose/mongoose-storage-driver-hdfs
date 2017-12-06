@@ -1,11 +1,8 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
-import com.emc.mongoose.api.model.io.task.IoTask;
 import com.emc.mongoose.api.model.io.task.data.DataIoTask;
 import com.emc.mongoose.api.model.item.DataItem;
-import com.emc.mongoose.ui.log.LogUtil;
 import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
 
 import com.github.akurilov.commons.io.util.OutputStreamWrapperChannel;
 import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
@@ -15,8 +12,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-
-import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
