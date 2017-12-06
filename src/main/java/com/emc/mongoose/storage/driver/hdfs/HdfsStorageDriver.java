@@ -48,10 +48,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
-extends NioStorageDriverBase<I, O> {
+extends NioStorageDriverBase<I, O>
+implements IoTaskCallback {
 
 	public static final String DEFAULT_URI_SCHEMA = "hdfs";
 
+	protected final Configuration hadoopConfig;
+	protected final FsPermission defaultFsPerm;
 	protected final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
 	private final String[] endpointAddrs;
 	private final AtomicInteger rrc = new AtomicInteger(0);
@@ -59,9 +62,6 @@ extends NioStorageDriverBase<I, O> {
 		fileInputStreams = new ConcurrentHashMap<>();
 	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataOutputStream>
 		fileOutputStreams = new ConcurrentHashMap<>();
-
-	private final Configuration hadoopConfig;
-	protected final FsPermission defaultFsPerm;
 
 	private int nodePort = -1;
 	private int inBuffSize = BUFF_SIZE_MIN;
@@ -191,6 +191,26 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
+	protected FSDataOutputStream getUpdateFileStream(
+		final DataIoTask<? extends DataItem> updateFileTask
+	) {
+		final String endpointAddr = updateFileTask.getNodeAddr();
+		final FileSystem endpoint = endpoints.get(endpointAddr);
+		final String dstPath = updateFileTask.getDstPath();
+		final DataItem fileItem = updateFileTask.getItem();
+		final String fileName = fileItem.getName();
+		final Path filePath = getFilePath(dstPath, fileName);
+		try {
+			return endpoint.create(
+				filePath, defaultFsPerm, true, outBuffSize,
+				endpoint.getDefaultReplication(filePath), fileItem.size(), null
+			);
+		} catch(final IOException e) {
+			updateFileTask.setStatus(FAIL_IO);
+			throw new RuntimeException(e);
+		}
+	}
+
 	@Override
 	protected void invokeNio(final O ioTask) {
 		if(ioTask instanceof DataIoTask) {
@@ -240,7 +260,7 @@ extends NioStorageDriverBase<I, O> {
 					break;
 
 				case READ:
-					input  = fileInputStreams.computeIfAbsent(fileIoTask, this::getReadFileStream);
+					input = fileInputStreams.computeIfAbsent(fileIoTask, this::getReadFileStream);
 					final List<Range> fixedRangesToRead = fileIoTask.getFixedRanges();
 					if(verifyFlag) {
 						try {
@@ -262,8 +282,8 @@ extends NioStorageDriverBase<I, O> {
 							}
 						} catch(final DataSizeException e) {
 							fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
-							final long
-								countBytesDone = fileIoTask.getCountBytesDone() + e.getOffset();
+							final long countBytesDone = fileIoTask.getCountBytesDone()
+								+ e.getOffset();
 							fileIoTask.setCountBytesDone(countBytesDone);
 							try {
 								Loggers.MSG.debug(
@@ -274,8 +294,8 @@ extends NioStorageDriverBase<I, O> {
 							}
 						} catch(final DataCorruptionException e) {
 							fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
-							final long
-								countBytesDone = fileIoTask.getCountBytesDone() + e.getOffset();
+							final long countBytesDone = fileIoTask.getCountBytesDone()
+								+ e.getOffset();
 							fileIoTask.setCountBytesDone(countBytesDone);
 							Loggers.MSG.debug(
 								"{}: content mismatch @ offset {}, expected: {}, actual: {} ",
@@ -304,24 +324,23 @@ extends NioStorageDriverBase<I, O> {
 
 				case UPDATE:
 					output = fileOutputStreams.computeIfAbsent(
-						fileIoTask, this::getCreateFileStream
+						fileIoTask, this::getUpdateFileStream
 					);
-					if(output == null) {
-						break;
-					}
 					final List<Range> fixedRangesToUpdate = fileIoTask.getFixedRanges();
 					if(fixedRangesToUpdate == null || fixedRangesToUpdate.isEmpty()) {
 						if(fileIoTask.hasMarkedRanges()) {
-							UpdateHelper.invokeFileRandomRangesUpdate(
+							throw new AssertionError("Not implemented");
+							/*UpdateHelper.invokeFileRandomRangesUpdate(
 								fileIoTask, fileItem, output, this
-							);
+							);*/
 						} else {
 							UpdateHelper.invokeFileOverwrite(fileIoTask, fileItem, output, this);
 						}
 					} else {
-						UpdateHelper.invokeFileFixedRangesUpdate(
+						throw new AssertionError("Not implemented");
+						/*UpdateHelper.invokeFileFixedRangesUpdate(
 							fileIoTask, fileItem, output, fixedRangesToUpdate, this
-						);
+						);*/
 					}
 					break;
 
@@ -337,6 +356,12 @@ extends NioStorageDriverBase<I, O> {
 				default:
 					throw new AssertionError("Not implemented");
 			}
+		} catch(final IOException e) {
+			LogUtil.exception(
+				Level.DEBUG, e, "I/O failure, operation: {}, file: {}", ioType, fileItem.getName()
+			);
+			finishIoTask((O) fileIoTask);
+			fileIoTask.setStatus(FAIL_IO);
 		} catch(final RuntimeException e) {
 			final Throwable cause = e.getCause();
 			final long countBytesDone = fileIoTask.getCountBytesDone();
@@ -371,9 +396,7 @@ extends NioStorageDriverBase<I, O> {
 				fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
 			}
 		} finally {
-			
 			if(!ACTIVE.equals(fileIoTask.getStatus())) {
-
 				if(input != null) {
 					fileInputStreams.remove(fileIoTask);
 					try {
@@ -382,7 +405,6 @@ extends NioStorageDriverBase<I, O> {
 						Loggers.ERR.warn("Failed to close the source I/O channel");
 					}
 				}
-
 				if(output != null) {
 					fileOutputStreams.remove(fileIoTask);
 					try {
@@ -395,7 +417,8 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	final void finishFileIoTask(final DataIoTask<? extends DataItem> ioTask) {
+	@Override @SuppressWarnings("unchecked")
+	public final void notifyIoTaskFinish(final IoTask ioTask) {
 		super.finishIoTask((O) ioTask);
 	}
 

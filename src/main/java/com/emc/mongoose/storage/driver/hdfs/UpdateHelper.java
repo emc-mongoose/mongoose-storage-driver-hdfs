@@ -10,6 +10,7 @@ import com.github.akurilov.commons.collection.Range;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 
+import java.io.IOException;
 import java.util.List;
 
 interface UpdateHelper {
@@ -17,7 +18,7 @@ interface UpdateHelper {
 	static void invokeFileRandomRangesUpdate(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataOutputStream outputStream, final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long updatingRangesSize = ioTask.getMarkedRangesSize();
@@ -48,10 +49,10 @@ interface UpdateHelper {
 					getRangeOffset(currRangeIdx), countBytesDone
 				);
 			}
-			outputStream.position(getRangeOffset(currRangeIdx) + countBytesDone);
+			/*outputStream.position(getRangeOffset(currRangeIdx) + countBytesDone);
 			countBytesDone += updatingRange.writeToFileChannel(
 				outputStream, updatingRangeSize - countBytesDone
-			);
+			);*/
 			if(Loggers.MSG.isTraceEnabled()) {
 				Loggers.MSG.trace(
 					"{}: {} bytes written totally", fileItem.getName(), countBytesDone
@@ -67,7 +68,7 @@ interface UpdateHelper {
 			if(Loggers.MSG.isTraceEnabled()) {
 				Loggers.MSG.trace("{}: {} bytes updated", fileItem.getName(), updatingRangesSize);
 			}
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 			fileItem.commitUpdatedRanges(ioTask.getMarkedRangesMaskPair());
 		}
 	}
@@ -76,7 +77,7 @@ interface UpdateHelper {
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataOutputStream outputStream, final List<Range> byteRanges,
 		final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long baseItemSize = fileItem.size();
@@ -115,8 +116,10 @@ interface UpdateHelper {
 				}
 				updatingRange = fileItem.slice(rangeBeg, rangeSize);
 				updatingRange.position(countBytesDone);
-				outputStream.position(rangeBeg + countBytesDone);
-				countBytesDone += updatingRange.writeToFileChannel(outputStream, rangeSize - countBytesDone);
+				/*outputStream.position(rangeBeg + countBytesDone);
+				countBytesDone += updatingRange.writeToFileChannel(
+					outputStream, rangeSize - countBytesDone
+				);*/
 
 				if(countBytesDone == rangeSize) {
 					ioTask.setCurrRangeIdx(currRangeIdx + 1);
@@ -129,14 +132,14 @@ interface UpdateHelper {
 				ioTask.setCountBytesDone(updatingRangesSize);
 			}
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
 	static void invokeFileOverwrite(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataOutputStream outputStream, final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 		throw new AssertionError("Not implemented yet");
 	}
 }

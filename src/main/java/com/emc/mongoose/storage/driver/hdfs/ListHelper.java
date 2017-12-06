@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListHelper {
+public interface ListHelper {
 
 	static <I extends Item> List<I> list(
 		final ItemFactory<I> itemFactory, final String path, final String prefix, final int idRadix,

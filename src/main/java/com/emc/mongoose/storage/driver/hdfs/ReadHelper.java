@@ -14,6 +14,7 @@ import com.github.akurilov.commons.system.DirectMemUtil;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
@@ -24,7 +25,7 @@ interface ReadHelper {
 	static void invokeFileReadAndVerify(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final HdfsStorageDriver driver
-	) throws DataSizeException {
+	) throws DataSizeException, IOException {
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long contentSize = fileItem.size();
 		if(countBytesDone < contentSize) {
@@ -79,7 +80,7 @@ interface ReadHelper {
 			}
 			ioTask.setCountBytesDone(countBytesDone);
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
@@ -87,7 +88,7 @@ interface ReadHelper {
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final BitSet maskRangesPair[],
 		final HdfsStorageDriver driver
-	) throws DataSizeException, DataCorruptionException {
+	) throws DataSizeException, DataCorruptionException, IOException {
 
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long rangesSizeSum = ioTask.getMarkedRangesSize();
@@ -155,7 +156,7 @@ interface ReadHelper {
 				ioTask.setCountBytesDone(countBytesDone);
 			}
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
@@ -163,7 +164,7 @@ interface ReadHelper {
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final List<Range> fixedRanges,
 		final HdfsStorageDriver driver
-	) throws DataSizeException, DataCorruptionException {
+	) throws DataSizeException, DataCorruptionException, IOException {
 
 		final long baseItemSize = fileItem.size();
 		final long fixedRangesSizeSum = ioTask.getMarkedRangesSize();
@@ -241,7 +242,7 @@ interface ReadHelper {
 					if(currFixedRangeIdx == fixedRanges.size() - 1) {
 						// current byte range was last in the list
 						ioTask.setCountBytesDone(fixedRangesSizeSum);
-						driver.finishFileIoTask(ioTask);
+						driver.notifyIoTaskFinish(ioTask);
 						return;
 					} else {
 						ioTask.setCurrRangeIdx(currFixedRangeIdx + 1);
@@ -253,14 +254,14 @@ interface ReadHelper {
 				ioTask.setCountBytesDone(fixedRangesSizeSum);
 			}
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
 	static void invokeFileRead(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long contentSize = fileItem.size();
 		int n;
@@ -269,7 +270,7 @@ interface ReadHelper {
 				DirectMemUtil.getThreadLocalReusableBuff(contentSize - countBytesDone)
 			);
 			if(n < 0) {
-				driver.finishFileIoTask(ioTask);
+				driver.notifyIoTaskFinish(ioTask);
 				ioTask.setCountBytesDone(countBytesDone);
 				fileItem.size(countBytesDone);
 			} else {
@@ -278,7 +279,7 @@ interface ReadHelper {
 			}
 		}
 		if(countBytesDone == contentSize) {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
@@ -286,7 +287,7 @@ interface ReadHelper {
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final BitSet maskRangesPair[],
 		final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 
 		int n;
 		long countBytesDone = ioTask.getCountBytesDone();
@@ -312,12 +313,12 @@ interface ReadHelper {
 			}
 
 			final long currRangeSize = range2read.size();
+			inputStream.seek(getRangeOffset(currRangeIdx) + countBytesDone);
 			n = inputStream.read(
-				DirectMemUtil.getThreadLocalReusableBuff(currRangeSize - countBytesDone),
-				getRangeOffset(currRangeIdx) + countBytesDone
+				DirectMemUtil.getThreadLocalReusableBuff(currRangeSize - countBytesDone)
 			);
 			if(n < 0) {
-				driver.finishFileIoTask(ioTask);
+				driver.notifyIoTaskFinish(ioTask);
 				ioTask.setCountBytesDone(countBytesDone);
 				return;
 			}
@@ -328,7 +329,7 @@ interface ReadHelper {
 				ioTask.setCountBytesDone(0);
 			}
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 
@@ -336,7 +337,7 @@ interface ReadHelper {
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final List<Range> byteRanges,
 		final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 
 		int n;
 		long countBytesDone = ioTask.getCountBytesDone();
@@ -365,12 +366,12 @@ interface ReadHelper {
 				} else {
 					rangeSize = rangeEnd - rangeBeg + 1;
 				}
+				inputStream.seek(rangeBeg + countBytesDone);
 				n = inputStream.read(
-					DirectMemUtil.getThreadLocalReusableBuff(rangeSize - countBytesDone),
-					rangeBeg + countBytesDone
+					DirectMemUtil.getThreadLocalReusableBuff(rangeSize - countBytesDone)
 				);
 				if(n < 0) {
-					driver.finishFileIoTask(ioTask);
+					driver.notifyIoTaskFinish(ioTask);
 					ioTask.setCountBytesDone(countBytesDone);
 					return;
 				}
@@ -386,7 +387,7 @@ interface ReadHelper {
 				ioTask.setCountBytesDone(rangesSizeSum);
 			}
 		} else {
-			driver.finishFileIoTask(ioTask);
+			driver.notifyIoTaskFinish(ioTask);
 		}
 	}
 }

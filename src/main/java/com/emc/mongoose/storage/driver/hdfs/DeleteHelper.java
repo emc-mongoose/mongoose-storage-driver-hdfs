@@ -19,7 +19,7 @@ public interface DeleteHelper {
 	static void invokeFileDelete(
 		final DataIoTask<? extends DataItem> fileIoTask, final FileSystem endpoint,
 		final HdfsStorageDriver driver
-	) {
+	) throws IOException {
 		final String dstPath = fileIoTask.getDstPath();
 		final DataItem fileItem = fileIoTask.getItem();
 		final String itemName = fileItem.getName();
@@ -29,26 +29,16 @@ public interface DeleteHelper {
 		} else {
 			filePath = new Path(dstPath, itemName);
 		}
-		try {
-			if(endpoint.delete(filePath, false)) {
-				driver.finishFileIoTask(fileIoTask);
-			} else {
-				Loggers.ERR.debug(
-					"Failed to delete the file {} @ {}", filePath,
-					endpoint.getCanonicalServiceName()
-				);
-				fileIoTask.startResponse();
-				fileIoTask.finishResponse();
-				fileIoTask.setStatus(IoTask.Status.RESP_FAIL_UNKNOWN);
-			}
-		} catch(final IOException e) {
-			LogUtil.exception(
-				Level.DEBUG, e, "Failed to delete the file {} @ {}", filePath,
+		if(endpoint.delete(filePath, false)) {
+			driver.notifyIoTaskFinish(fileIoTask);
+		} else {
+			Loggers.ERR.debug(
+				"Failed to delete the file {} @ {}", filePath,
 				endpoint.getCanonicalServiceName()
 			);
 			fileIoTask.startResponse();
 			fileIoTask.finishResponse();
-			fileIoTask.setStatus(FAIL_IO);
+			fileIoTask.setStatus(IoTask.Status.RESP_FAIL_UNKNOWN);
 		}
 	}
 }
