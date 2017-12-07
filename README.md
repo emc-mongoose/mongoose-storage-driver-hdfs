@@ -161,7 +161,7 @@ java -jar mongoose-<VER>/mongoose.jar \
 
 The information below describes which particular methods are invoked
 on the endpoint in each case. The endpoint hereafter is a
-[Hadoop FileSystem](https://hadoop.apache.org/docs/r2.8.0/api/org/apache/hadoop/fs/FileSystem.html)
+[Hadoop FileSystem](https://hadoop.apache.org/docs/r2.9.0/api/org/apache/hadoop/fs/FileSystem.html)
 instance.
 
 The item types `data` and `path` are supported.
@@ -220,7 +220,7 @@ Supported
 
 ###### Random Ranges
 
-Not supported as far as (FSDataOutputStream)[http://hadoop.apache.org/docs/r2.9.0/api/org/apache/hadoop/fs/FSDataOutputStream.html]
+Not supported as far as [FSDataOutputStream](http://hadoop.apache.org/docs/r2.9.0/api/org/apache/hadoop/fs/FSDataOutputStream.html)
 doesn't allow positioning.
 
 ###### Fixed Ranges
