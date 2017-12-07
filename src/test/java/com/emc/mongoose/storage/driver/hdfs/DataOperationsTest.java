@@ -425,7 +425,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		final FileSystem endpoint = endpoints.values().iterator().next();
 
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
-		dataItem.setName("0000");
+		dataItem.setName("7777");
 		dataItem.setDataInput(DATA_INPUT);
 		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
 			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
