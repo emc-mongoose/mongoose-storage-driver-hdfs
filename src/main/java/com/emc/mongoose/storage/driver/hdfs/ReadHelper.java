@@ -25,58 +25,46 @@ interface ReadHelper {
 	static void invokeFileReadAndVerify(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
 		final FSDataInputStream inputStream, final HdfsStorageDriver driver
-	) throws DataSizeException, IOException {
+	) throws DataSizeException, DataCorruptionException, IOException {
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long contentSize = fileItem.size();
 		if(countBytesDone < contentSize) {
-			try {
-				if(fileItem.isUpdated()) {
-					final DataItem currRange = ioTask.getCurrRange();
-					final int nextRangeIdx = ioTask.getCurrRangeIdx() + 1;
-					final long nextRangeOffset = getRangeOffset(nextRangeIdx);
-					if(currRange != null) {
-						final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
-							nextRangeOffset - countBytesDone
-						);
-						final int n = inputStream.read(inBuff);
-						if(n < 0) {
-							throw new DataSizeException(contentSize, countBytesDone);
-						} else {
-							inBuff.flip();
-							currRange.verify(inBuff);
-							currRange.position(currRange.position() + n);
-							countBytesDone += n;
-							if(countBytesDone == nextRangeOffset) {
-								ioTask.setCurrRangeIdx(nextRangeIdx);
-							}
-						}
-					} else {
-						throw new AssertionError("Null data range");
-					}
-				} else {
+			if(fileItem.isUpdated()) {
+				final DataItem currRange = ioTask.getCurrRange();
+				final int nextRangeIdx = ioTask.getCurrRangeIdx() + 1;
+				final long nextRangeOffset = getRangeOffset(nextRangeIdx);
+				if(currRange != null) {
 					final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
-						contentSize - countBytesDone
+						nextRangeOffset - countBytesDone
 					);
 					final int n = inputStream.read(inBuff);
 					if(n < 0) {
 						throw new DataSizeException(contentSize, countBytesDone);
 					} else {
 						inBuff.flip();
-						fileItem.verify(inBuff);
-						fileItem.position(fileItem.position() + n);
+						currRange.verify(inBuff);
+						currRange.position(currRange.position() + n);
 						countBytesDone += n;
+						if(countBytesDone == nextRangeOffset) {
+							ioTask.setCurrRangeIdx(nextRangeIdx);
+						}
 					}
+				} else {
+					throw new AssertionError("Null data range");
 				}
-			} catch(final DataCorruptionException e) {
-				ioTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
-				countBytesDone += e.getOffset();
-				ioTask.setCountBytesDone(countBytesDone);
-				Loggers.MSG.debug(
-					"{}: content mismatch @ offset {}, expected: {}, actual: {} ",
-					fileItem.getName(), countBytesDone,
-					String.format("\"0x%X\"", (int) (e.expected & 0xFF)),
-					String.format("\"0x%X\"", (int) (e.actual & 0xFF))
+			} else {
+				final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
+					contentSize - countBytesDone
 				);
+				final int n = inputStream.read(inBuff);
+				if(n < 0) {
+					throw new DataSizeException(contentSize, countBytesDone);
+				} else {
+					inBuff.flip();
+					fileItem.verify(inBuff);
+					fileItem.position(fileItem.position() + n);
+					countBytesDone += n;
+				}
 			}
 			ioTask.setCountBytesDone(countBytesDone);
 		} else {

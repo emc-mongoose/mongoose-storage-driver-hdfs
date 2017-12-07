@@ -29,7 +29,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -120,14 +122,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		);
 	}
 
-	@Before
-	public void setUp()
+	@BeforeClass
+	public static void setUpClass()
 	throws Exception {
 		HdfsNodeContainer.setUpClass();
 	}
 
-	@After
-	public void tearDown()
+	@AfterClass
+	public static void tearDownClass()
 	throws Exception {
 		HdfsNodeContainer.tearDownClass();
 	}
