@@ -252,6 +252,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	@Test
 	public final void testReadFullFile()
 	throws Exception {
+
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
 		dataItem.setName("2222");
 		dataItem.setDataInput(DATA_INPUT);
@@ -281,6 +282,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	@Test
 	public final void testReadFixedRangesFile()
 	throws Exception {
+
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
 		dataItem.setName("3333");
 		dataItem.setDataInput(DATA_INPUT);
@@ -313,6 +315,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	@Test
 	public final void testReadRandomRangesFile()
 	throws Exception {
+
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
 		dataItem.setName("4444");
 		dataItem.setDataInput(DATA_INPUT);
@@ -340,15 +343,76 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		assertTrue(readTask.getCountBytesDone() < MIB);
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testOverwriteFile()
 	throws Exception {
 
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("5555");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
+
+		final DataIoTask<DataItem> overwriteTask = new BasicDataIoTask<>(
+			0, IoType.UPDATE, dataItem, createTask.getDstPath(), null, CREDENTIAL,
+			null, 0, null
+		);
+		overwriteTask.setNodeAddr(endpoints.keySet().iterator().next());
+		overwriteTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(overwriteTask.getStatus())) {
+			invokeNio(overwriteTask);
+		}
+		assertEquals(IoTask.Status.SUCC, overwriteTask.getStatus());
+		assertEquals(MIB, overwriteTask.getCountBytesDone());
+		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileStatus fileStatus = endpoint.getFileStatus(
+			new Path("/default", dataItem.getName())
+		);
+		assertTrue(fileStatus.isFile());
+		assertEquals(MIB, fileStatus.getLen());
 	}
 
-	@Test @Ignore
+	@Test
 	public final void testAppendFile()
 	throws Exception {
+
+		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
+		dataItem.setName("6666");
+		dataItem.setDataInput(DATA_INPUT);
+		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
+			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
+		);
+		prepareIoTask(createTask);
+		createTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(createTask.getStatus())) {
+			invokeNio(createTask);
+		}
+		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
+
+		final DataIoTask<DataItem> appendTask = new BasicDataIoTask<>(
+			0, IoType.UPDATE, dataItem, createTask.getDstPath(), null, CREDENTIAL,
+			Collections.singletonList(new Range(-1, -1, MIB)), 0, null
+		);
+		appendTask.setNodeAddr(endpoints.keySet().iterator().next());
+		appendTask.setStatus(IoTask.Status.ACTIVE);
+		while(IoTask.Status.ACTIVE.equals(appendTask.getStatus())) {
+			invokeNio(appendTask);
+		}
+		assertEquals(IoTask.Status.SUCC, appendTask.getStatus());
+		assertEquals(MIB, appendTask.getCountBytesDone());
+		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileStatus fileStatus = endpoint.getFileStatus(
+			new Path("/default", dataItem.getName())
+		);
+		assertTrue(fileStatus.isFile());
+		assertEquals(2 * MIB, fileStatus.getLen());
 
 	}
 

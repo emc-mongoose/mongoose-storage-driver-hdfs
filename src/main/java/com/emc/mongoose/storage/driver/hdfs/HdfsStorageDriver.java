@@ -339,29 +339,40 @@ extends NioStorageDriverBase<I, O> {
 					final List<Range> fixedRangesToUpdate = fileIoTask.getFixedRanges();
 					if(fixedRangesToUpdate == null || fixedRangesToUpdate.isEmpty()) {
 						if(fileIoTask.hasMarkedRanges()) {
-							throw new AssertionError("Not implemented");
+							throw new AssertionError("Random byte ranges update isn't implemented");
 						} else {
+							// overwrite
 							output = fileOutputStreams.computeIfAbsent(
 								fileIoTask, this::getUpdateFileStream
 							);
-							// overwrite
 							CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
 						}
 					} else {
 						if(fixedRangesToUpdate.size() == 1) {
-							final Range appendRange = fixedRangesToUpdate.get(0);
-							if(appendRange.getSize() > 0) {
+							final Range range = fixedRangesToUpdate.get(0);
+							if(range.getBeg() == 0 && range.getEnd() == fileItem.size() - 1) {
+								// overwrite
+								output = fileOutputStreams.computeIfAbsent(
+									fileIoTask, this::getUpdateFileStream
+								);
+								CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
+							} else if(range.getSize() > 0) {
+								// append
 								output = fileOutputStreams.computeIfAbsent(
 									fileIoTask, this::getAppendFileStream
 								);
 								UpdateHelper.invokeFileAppend(
-									fileIoTask, fileItem, output, appendRange, this
+									fileIoTask, fileItem, output, range, this
 								);
 							} else {
-								throw new AssertionError("Not implemented");
+								throw new AssertionError(
+									"Custom fixed byte ranges update isn't implemented"
+								);
 							}
 						} else {
-							throw new AssertionError("Not implemented");
+							throw new AssertionError(
+								"Multiple fixed byte ranges update isn't implemented"
+							);
 						}
 					}
 					break;
@@ -373,10 +384,8 @@ extends NioStorageDriverBase<I, O> {
 					break;
 
 				case LIST:
-					throw new AssertionError("Not implemented");
-
 				default:
-					throw new AssertionError("Not implemented");
+					throw new AssertionError("\"" + ioType + "\" operation isn't implemented");
 			}
 		} catch(final IOException e) {
 			LogUtil.exception(
