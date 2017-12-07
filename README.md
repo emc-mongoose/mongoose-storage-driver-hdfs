@@ -16,10 +16,10 @@ and uses the following libraries:
 # Features
 
 * Authentification: login, Kerberos
-* SSL/TLS - ?
+* SSL/TLS - TODO
 * Item types:
     * `data`
-    * `path`
+    * `path` - TODO
 * Path listing input
 * Automatic destination path creation on demand
 * Data item operation types:
@@ -35,7 +35,7 @@ and uses the following libraries:
         * fixed byte ranges: append mode only
     * `delete`
     * `noop`
-* Path item operation types:
+* Path item operation types (TODO):
     * `create`, additional modes:
         * copy - ?
         * concatenation - ?
