@@ -25,7 +25,6 @@ and uses the following libraries:
 * Data item operation types:
     * `create`, additional modes:
         * copy
-        * concatenation
     * `read`
         * full
         * random byte ranges
@@ -33,8 +32,7 @@ and uses the following libraries:
         * content verification
     * `update`
         * full (overwrite)
-        * random byte ranges
-        * fixed byte ranges (with append mode)
+        * fixed byte ranges: append mode only
     * `delete`
     * `noop`
 * Path item operation types:
@@ -115,7 +113,6 @@ cd mongoose-storage-driver-hdfs
 ### Build
 
 ```bash
-
 ./gradlew clean jar
 ```
 
@@ -125,8 +122,7 @@ cd mongoose-storage-driver-hdfs
 compile group: 'com.github.emc-mongoose', name: 'mongoose-storage-driver-hdfs', version: '<VERSION>'
 ```
 
-
-### Notes
+### Development Notes
 
 Node's FS browser is available at default port #50070
 
@@ -139,10 +135,10 @@ HDFS default port #9000
 docker run -d --net host -e SSH_PORT=2222 --name hdfs dockerq/docker-hdfs
 ```
 
-2. Open the browser and check the HDFS share @ http://127.0.0.1:50070/explorer.html.
-Here the data will be observable.
+2. Open the browser and check the HDFS share @ http://127.0.0.1:50070/explorer.html
+to observe the filesystem
 
-3. Build the Mongoose HDFS storage driver jar either the Docker image.
+3. Build the Mongoose HDFS storage driver jar either use the Docker image.
 
 4. Put the HDFS storage driver jar into the Mongoose's `ext` directory
 either use the Docker image with HDFS support.
@@ -173,7 +169,7 @@ The item types `data` and `path` are supported.
 
 #### Data
 
-Operations on the data are implemented as file operations
+Operations on the data items type are implemented as file operations
 
 ##### Noop
 
@@ -181,10 +177,7 @@ Doesn't invoke anything.
 
 ##### Create
 
-If size is 0 then `createNewFile(Path f)` is invoked (returning
-true/false).
-
-Otherwise, `create(Path f, false, int bufferSize)` is invoked with
+The method `create(Path, FsPerm, boolean, int, short, long, null)` is invoked with
 calculated output buffer size. The returned `FSDataOutputStream` is
 used to write the data.
 
@@ -193,6 +186,8 @@ used to write the data.
 Uses both `create` and `open` methods to obtain output and input streams
 
 ###### Concatenation
+
+Note: not supported as far as HDFS doesn't allow to concatenate to the new & empty destination object
 
 `concat(Path dst, Path[] srcs)` is invoked (doesn't return anything).
 
@@ -211,35 +206,30 @@ the positioning needed for the partial read.
 
 **Random Ranges**
 
-No additional info.
+Supported
 
 **Fixed Ranges**
 
-No additional info.
+Supported
 
 ##### Update
 
 ###### Overwrite
 
-`create(Path f, true, int bufferSize)` is invoked with
-calculated output buffer size. The returned `FSDataOutputStream` is
-used to write the data.
+Supported
 
 ###### Random Ranges
 
-`create(Path f, true, int bufferSize)` is invoked with
-calculated output buffer size. The returned `FSDataOutputStream` is
-used to write the data at the calculated positions.
+Not supported as far as (FSDataOutputStream)[http://hadoop.apache.org/docs/r2.9.0/api/org/apache/hadoop/fs/FSDataOutputStream.html]
+doesn't allow positioning.
 
 ###### Fixed Ranges
 
-`create(Path f, true, int bufferSize)` is invoked with
-calculated output buffer size. The returned `FSDataOutputStream` is
-used to write the data at the calculated positions.
+Not supported except the append case.
 
 **Append**
 
-`append(Path f, int bufferSize)` is invoked.
+Supported
 
 ##### Delete
 
