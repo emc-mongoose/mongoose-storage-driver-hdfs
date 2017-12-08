@@ -1,4 +1,4 @@
-package com.emc.mongoose.storage.driver.hdfs;
+package com.emc.mongoose.storage.driver.hdfs.integration;
 
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
@@ -9,6 +9,7 @@ import com.emc.mongoose.api.model.io.task.data.DataIoTask;
 import com.emc.mongoose.api.model.item.BasicDataItem;
 import com.emc.mongoose.api.model.item.DataItem;
 import com.emc.mongoose.api.model.storage.Credential;
+import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.load.LoadConfig;

@@ -1,4 +1,4 @@
-package com.emc.mongoose.storage.driver.hdfs;
+package com.emc.mongoose.storage.driver.hdfs.integration;
 
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.data.DataInput;
@@ -7,6 +7,7 @@ import com.emc.mongoose.api.model.item.DataItem;
 import com.emc.mongoose.api.model.item.Item;
 import com.emc.mongoose.api.model.item.ItemFactory;
 import com.emc.mongoose.api.model.storage.Credential;
+import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.load.LoadConfig;
@@ -27,7 +28,6 @@ import org.apache.hadoop.fs.Path;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;

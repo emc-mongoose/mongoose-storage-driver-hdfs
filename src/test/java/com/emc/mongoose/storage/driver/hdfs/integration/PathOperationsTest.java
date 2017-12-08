@@ -1,10 +1,11 @@
-package com.emc.mongoose.storage.driver.hdfs;
+package com.emc.mongoose.storage.driver.hdfs.integration;
 
 import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
 import com.emc.mongoose.api.model.io.task.path.PathIoTask;
 import com.emc.mongoose.api.model.item.ItemType;
 import com.emc.mongoose.api.model.item.PathItem;
 import com.emc.mongoose.api.model.storage.Credential;
+import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.item.ItemConfig;
@@ -20,7 +21,6 @@ import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.Collections;
