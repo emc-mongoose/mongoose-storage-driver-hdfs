@@ -22,6 +22,16 @@ import com.emc.mongoose.ui.log.LogUtil;
 import com.emc.mongoose.ui.log.Loggers;
 import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
 import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileAppend;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileCopy;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileCreate;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileDelete;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileRead;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileReadAndVerify;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileReadAndVerifyFixedRanges;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileReadAndVerifyRandomRanges;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileReadFixedRanges;
+import static com.emc.mongoose.storage.driver.hdfs.FileIoHelper.invokeFileReadRandomRanges;
 
 import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -225,7 +235,7 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	@Override
-	protected void invokeNio(final O ioTask) {
+	protected final void invokeNio(final O ioTask) {
 		if(ioTask instanceof DataIoTask) {
 			invokeFileNio((DataIoTask<? extends DataItem>) ioTask);
 		} else if(ioTask instanceof PathIoTask) {
@@ -253,10 +263,7 @@ extends NioStorageDriverBase<I, O> {
 				case CREATE:
 					final List<? extends DataItem> srcItems = fileIoTask.getSrcItemsToConcat();
 					if(srcItems != null) {
-						CreateHelper.invokeFileConcat(
-							fileIoTask, fileItem, srcItems, endpoints.get(fileIoTask.getNodeAddr()),
-							this, defaultFsPerm
-						);
+						throw new AssertionError("Files concatenation support is not implemented");
 					} else {
 						input = fileInputStreams.computeIfAbsent(
 							fileIoTask, this::getReadFileStream
@@ -265,9 +272,13 @@ extends NioStorageDriverBase<I, O> {
 							fileIoTask, this::getCreateFileStream
 						);
 						if(input != null) {
-							CreateHelper.invokeFileCopy(fileIoTask, fileItem, input, output, this);
+							if(invokeFileCopy(fileIoTask, fileItem, input, output)) {
+								finishIoTask((O) fileIoTask);
+							}
 						} else {
-							CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
+							if(invokeFileCreate(fileIoTask, fileItem, output)) {
+								finishIoTask((O) fileIoTask);
+							}
 						}
 					}
 					break;
@@ -279,19 +290,27 @@ extends NioStorageDriverBase<I, O> {
 						try {
 							if(fixedRangesToRead == null || fixedRangesToRead.isEmpty()) {
 								if(fileIoTask.hasMarkedRanges()) {
-									ReadHelper.invokeFileReadAndVerifyRandomRanges(
-										fileIoTask, fileItem, input,
-										fileIoTask.getMarkedRangesMaskPair(), this
-									);
+									if(
+										invokeFileReadAndVerifyRandomRanges(
+											fileIoTask, fileItem, input,
+											fileIoTask.getMarkedRangesMaskPair()
+										)
+									) {
+										finishIoTask((O) fileIoTask);
+									}
 								} else {
-									ReadHelper.invokeFileReadAndVerify(
-										fileIoTask, fileItem, input, this
-									);
+									if(invokeFileReadAndVerify(fileIoTask, fileItem, input)) {
+										finishIoTask((O) fileIoTask);
+									}
 								}
 							} else {
-								ReadHelper.invokeFileReadAndVerifyFixedRanges(
-									fileIoTask, fileItem, input, fixedRangesToRead, this
-								);
+								if(
+									invokeFileReadAndVerifyFixedRanges(
+										fileIoTask, fileItem, input, fixedRangesToRead
+									)
+								) {
+									finishIoTask((O) fileIoTask);
+								}
 							}
 						} catch(final DataSizeException e) {
 							fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
@@ -320,17 +339,27 @@ extends NioStorageDriverBase<I, O> {
 					} else {
 						if(fixedRangesToRead == null || fixedRangesToRead.isEmpty()) {
 							if(fileIoTask.hasMarkedRanges()) {
-								ReadHelper.invokeFileReadRandomRanges(
-									fileIoTask, fileItem, input,
-									fileIoTask.getMarkedRangesMaskPair(), this
-								);
+								if(
+									invokeFileReadRandomRanges(
+										fileIoTask, fileItem, input,
+										fileIoTask.getMarkedRangesMaskPair()
+									)
+								) {
+									finishIoTask((O) fileIoTask);
+								}
 							} else {
-								ReadHelper.invokeFileRead(fileIoTask, fileItem, input, this);
+								if(invokeFileRead(fileIoTask, fileItem, input)) {
+									finishIoTask((O) fileIoTask);
+								}
 							}
 						} else {
-							ReadHelper.invokeFileReadFixedRanges(
-								fileIoTask, fileItem, input, fixedRangesToRead, this
-							);
+							if(
+								invokeFileReadFixedRanges(
+									fileIoTask, fileItem, input, fixedRangesToRead
+								)
+							) {
+								finishIoTask((O) fileIoTask);
+							}
 						}
 					}
 					break;
@@ -345,7 +374,9 @@ extends NioStorageDriverBase<I, O> {
 							output = fileOutputStreams.computeIfAbsent(
 								fileIoTask, this::getUpdateFileStream
 							);
-							CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
+							if(invokeFileCreate(fileIoTask, fileItem, output)) {
+								finishIoTask((O) fileIoTask);
+							}
 						}
 					} else {
 						if(fixedRangesToUpdate.size() == 1) {
@@ -355,15 +386,17 @@ extends NioStorageDriverBase<I, O> {
 								output = fileOutputStreams.computeIfAbsent(
 									fileIoTask, this::getUpdateFileStream
 								);
-								CreateHelper.invokeFileCreate(fileIoTask, fileItem, output, this);
+								if(invokeFileCreate(fileIoTask, fileItem, output)) {
+									finishIoTask((O) fileIoTask);
+								}
 							} else if(range.getSize() > 0) {
 								// append
 								output = fileOutputStreams.computeIfAbsent(
 									fileIoTask, this::getAppendFileStream
 								);
-								UpdateHelper.invokeFileAppend(
-									fileIoTask, fileItem, output, range, this
-								);
+								if(invokeFileAppend(fileIoTask, fileItem, output, range)) {
+									finishIoTask((O) fileIoTask);
+								}
 							} else {
 								throw new AssertionError(
 									"Custom fixed byte ranges update isn't implemented"
@@ -378,9 +411,9 @@ extends NioStorageDriverBase<I, O> {
 					break;
 
 				case DELETE:
-					DeleteHelper.invokeFileDelete(
-						fileIoTask, endpoints.get(fileIoTask.getNodeAddr()), this
-					);
+					if(invokeFileDelete(fileIoTask, endpoints.get(fileIoTask.getNodeAddr()))) {
+						finishIoTask((O) fileIoTask);
+					}
 					break;
 
 				case LIST:
@@ -446,11 +479,6 @@ extends NioStorageDriverBase<I, O> {
 				}
 			}
 		}
-	}
-
-	@SuppressWarnings("unchecked")
-	final void notifyIoTaskFinish(final IoTask ioTask) {
-		super.finishIoTask((O) ioTask);
 	}
 
 	private void invokeDirectoryNio(final PathIoTask<? extends PathItem> dirIoTask) {

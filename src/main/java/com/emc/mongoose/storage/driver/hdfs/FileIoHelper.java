@@ -6,28 +6,119 @@ import com.emc.mongoose.api.model.io.task.IoTask;
 import com.emc.mongoose.api.model.io.task.data.DataIoTask;
 import com.emc.mongoose.api.model.item.DataItem;
 import com.emc.mongoose.ui.log.Loggers;
+import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
 import static com.emc.mongoose.api.model.item.DataItem.getRangeCount;
 import static com.emc.mongoose.api.model.item.DataItem.getRangeOffset;
 
 import com.github.akurilov.commons.collection.Range;
+import com.github.akurilov.commons.io.util.OutputStreamWrapperChannel;
 import com.github.akurilov.commons.system.DirectMemUtil;
+import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
 
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 import java.util.BitSet;
 import java.util.List;
 
+public interface FileIoHelper {
 
-interface ReadHelper {
+	static boolean invokeFileCreate(
+		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final FSDataOutputStream outputStream
+	) throws IOException {
 
-	static void invokeFileReadAndVerify(
+		final long fileSize;
+		try {
+			fileSize = fileItem.size();
+		} catch(final IOException e) {
+			throw new AssertionError(e);
+		}
+		long countBytesDone = fileIoTask.getCountBytesDone();
+		final long remainingBytes = fileSize - countBytesDone;
+
+		if(remainingBytes > 0) {
+			final WritableByteChannel outputChan = OutputStreamWrapperChannel
+				.getThreadLocalInstance(outputStream, remainingBytes);
+			countBytesDone += fileItem.writeToSocketChannel(outputChan, remainingBytes);
+			fileIoTask.setCountBytesDone(countBytesDone);
+		}
+
+		return remainingBytes <= 0;
+	}
+
+	static boolean invokeFileCopy(
+		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final FSDataInputStream inputStream, final FSDataOutputStream outputStream
+	) throws IOException {
+
+		long countBytesDone = fileIoTask.getCountBytesDone();
+		final long fileSize;
+		try {
+			fileSize = fileItem.size();
+		} catch(final IOException e) {
+			throw new AssertionError(e);
+		}
+		final long remainingSize = fileSize - countBytesDone;
+
+		if(remainingSize > 0 && ACTIVE.equals(fileIoTask.getStatus())) {
+			final byte[] buff = new byte[
+				remainingSize > REUSABLE_BUFF_SIZE_MAX ?
+					REUSABLE_BUFF_SIZE_MAX : (int) remainingSize
+				];
+			final int n = inputStream.read(buff, 0, buff.length);
+			outputStream.write(buff, 0, n);
+			countBytesDone += n;
+			fileIoTask.setCountBytesDone(countBytesDone);
+		}
+
+		return countBytesDone >= fileSize;
+	}
+
+	/*static boolean invokeFileConcat(
+		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final List<? extends DataItem> srcItems, final FileSystem endpoint,
+		final FsPermission fsPerm
+	) throws IOException {
+
+		final String dstPath = fileIoTask.getDstPath();
+		final int srcItemsCount = srcItems.size();
+		final Path[] srcPaths = new Path[srcItems.size()];
+		final String fileName = fileItem.getName();
+		final Path dstFilePath = driver.getFilePath(dstPath, fileName);
+		DataItem srcItem;
+		long dstItemSize = 0;
+
+		for(int i = 0; i < srcItemsCount; i ++) {
+			srcItem = srcItems.get(i);
+			srcPaths[i] = driver.getFilePath(dstPath, srcItem.getName());
+			dstItemSize += srcItem.size();
+		}
+		endpoint
+			.create(
+				dstFilePath, fsPerm, false, 0, endpoint.getDefaultReplication(dstFilePath),
+				dstItemSize, null
+			)
+			.close();
+		endpoint.concat(dstFilePath, srcPaths);
+
+		return true;
+	}*/
+
+	static boolean invokeFileReadAndVerify(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final HdfsStorageDriver driver
+		final FSDataInputStream inputStream
 	) throws DataSizeException, IOException {
+
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long contentSize = fileItem.size();
+
 		if(countBytesDone < contentSize) {
 			try {
 				if(fileItem.isUpdated()) {
@@ -79,15 +170,14 @@ interface ReadHelper {
 				);
 			}
 			ioTask.setCountBytesDone(countBytesDone);
-		} else {
-			driver.notifyIoTaskFinish(ioTask);
 		}
+
+		return countBytesDone >= contentSize;
 	}
 
-	static void invokeFileReadAndVerifyRandomRanges(
+	static boolean invokeFileReadAndVerifyRandomRanges(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final BitSet maskRangesPair[],
-		final HdfsStorageDriver driver
+		final FSDataInputStream inputStream, final BitSet maskRangesPair[]
 	) throws DataSizeException, DataCorruptionException, IOException {
 
 		long countBytesDone = ioTask.getCountBytesDone();
@@ -116,7 +206,7 @@ interface ReadHelper {
 					}
 				} else {
 					ioTask.setCountBytesDone(rangesSizeSum);
-					return;
+					return true;
 				}
 			}
 
@@ -155,15 +245,14 @@ interface ReadHelper {
 			} else {
 				ioTask.setCountBytesDone(countBytesDone);
 			}
-		} else {
-			driver.notifyIoTaskFinish(ioTask);
 		}
+
+		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
 	}
 
-	static void invokeFileReadAndVerifyFixedRanges(
+	static boolean invokeFileReadAndVerifyFixedRanges(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final List<Range> fixedRanges,
-		final HdfsStorageDriver driver
+		final FSDataInputStream inputStream, final List<Range> fixedRanges
 	) throws DataSizeException, DataCorruptionException, IOException {
 
 		final long baseItemSize = fileItem.size();
@@ -242,8 +331,7 @@ interface ReadHelper {
 					if(currFixedRangeIdx == fixedRanges.size() - 1) {
 						// current byte range was last in the list
 						ioTask.setCountBytesDone(fixedRangesSizeSum);
-						driver.notifyIoTaskFinish(ioTask);
-						return;
+						return true;
 					} else {
 						ioTask.setCurrRangeIdx(currFixedRangeIdx + 1);
 						rangeBytesDone = 0;
@@ -253,14 +341,14 @@ interface ReadHelper {
 			} else {
 				ioTask.setCountBytesDone(fixedRangesSizeSum);
 			}
-		} else {
-			driver.notifyIoTaskFinish(ioTask);
 		}
+
+		return fixedRangesSizeSum <= 0 || fixedRangesSizeSum <= countBytesDone;
 	}
 
-	static void invokeFileRead(
+	static boolean invokeFileRead(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final HdfsStorageDriver driver
+		final FSDataInputStream inputStream
 	) throws IOException {
 		long countBytesDone = ioTask.getCountBytesDone();
 		final long contentSize = fileItem.size();
@@ -270,23 +358,21 @@ interface ReadHelper {
 				DirectMemUtil.getThreadLocalReusableBuff(contentSize - countBytesDone)
 			);
 			if(n < 0) {
-				driver.notifyIoTaskFinish(ioTask);
 				ioTask.setCountBytesDone(countBytesDone);
 				fileItem.size(countBytesDone);
+				return true;
 			} else {
 				countBytesDone += n;
 				ioTask.setCountBytesDone(countBytesDone);
 			}
 		}
-		if(countBytesDone == contentSize) {
-			driver.notifyIoTaskFinish(ioTask);
-		}
+
+		return countBytesDone >= contentSize;
 	}
 
-	static void invokeFileReadRandomRanges(
+	static boolean invokeFileReadRandomRanges(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final BitSet maskRangesPair[],
-		final HdfsStorageDriver driver
+		final FSDataInputStream inputStream, final BitSet maskRangesPair[]
 	) throws IOException {
 
 		int n;
@@ -308,7 +394,7 @@ interface ReadHelper {
 					}
 				} else {
 					ioTask.setCountBytesDone(rangesSizeSum);
-					return;
+					return true;
 				}
 			}
 
@@ -318,9 +404,8 @@ interface ReadHelper {
 				DirectMemUtil.getThreadLocalReusableBuff(currRangeSize - countBytesDone)
 			);
 			if(n < 0) {
-				driver.notifyIoTaskFinish(ioTask);
 				ioTask.setCountBytesDone(countBytesDone);
-				return;
+				return true;
 			}
 			countBytesDone += n;
 
@@ -330,15 +415,14 @@ interface ReadHelper {
 			} else {
 				ioTask.setCountBytesDone(countBytesDone);
 			}
-		} else {
-			driver.notifyIoTaskFinish(ioTask);
 		}
+
+		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
 	}
 
-	static void invokeFileReadFixedRanges(
+	static boolean invokeFileReadFixedRanges(
 		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
-		final FSDataInputStream inputStream, final List<Range> byteRanges,
-		final HdfsStorageDriver driver
+		final FSDataInputStream inputStream, final List<Range> byteRanges
 	) throws IOException {
 
 		int n;
@@ -373,9 +457,8 @@ interface ReadHelper {
 					DirectMemUtil.getThreadLocalReusableBuff(rangeSize - countBytesDone)
 				);
 				if(n < 0) {
-					driver.notifyIoTaskFinish(ioTask);
 					ioTask.setCountBytesDone(countBytesDone);
-					return;
+					return true;
 				}
 				countBytesDone += n;
 
@@ -388,8 +471,56 @@ interface ReadHelper {
 			} else {
 				ioTask.setCountBytesDone(rangesSizeSum);
 			}
-		} else {
-			driver.notifyIoTaskFinish(ioTask);
 		}
+
+		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
+	}
+
+	static boolean invokeFileAppend(
+		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final FSDataOutputStream outputStream, final Range appendRange
+	) throws IOException {
+
+		final long countBytesDone = ioTask.getCountBytesDone();
+		final long appendSize = appendRange.getSize();
+		final long remainingSize = appendSize - countBytesDone;
+		long n;
+
+		if(remainingSize > 0) {
+			final WritableByteChannel outputChan = OutputStreamWrapperChannel
+				.getThreadLocalInstance(outputStream, remainingSize);
+			n = fileItem.writeToSocketChannel(outputChan, remainingSize);
+			ioTask.setCountBytesDone(countBytesDone + n);
+			fileItem.size(fileItem.size() + n);
+		}
+
+		return remainingSize <= 0;
+	}
+
+	static boolean invokeFileDelete(
+		final DataIoTask<? extends DataItem> fileIoTask, final FileSystem endpoint
+	) throws IOException {
+
+		final String dstPath = fileIoTask.getDstPath();
+		final DataItem fileItem = fileIoTask.getItem();
+		final String itemName = fileItem.getName();
+		final Path filePath;
+		if(dstPath == null || dstPath.isEmpty() || itemName.startsWith(dstPath)) {
+			filePath = new Path(itemName);
+		} else {
+			filePath = new Path(dstPath, itemName);
+		}
+
+		if(!endpoint.delete(filePath, false)) {
+			Loggers.ERR.debug(
+				"Failed to delete the file {} @ {}", filePath,
+				endpoint.getCanonicalServiceName()
+			);
+			fileIoTask.startResponse();
+			fileIoTask.finishResponse();
+			fileIoTask.setStatus(IoTask.Status.RESP_FAIL_UNKNOWN);
+		}
+
+		return true;
 	}
 }
