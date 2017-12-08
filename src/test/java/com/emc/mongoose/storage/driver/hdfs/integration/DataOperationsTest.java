@@ -30,7 +30,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -121,14 +123,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		);
 	}
 
-	@Before
-	public void setUp()
+	@BeforeClass
+	public static void setUpClass()
 	throws Exception {
 		HdfsNodeContainer.setUpClass();
 	}
 
-	@After
-	public void tearDown()
+	@AfterClass
+	public static void tearDownClass()
 	throws Exception {
 		HdfsNodeContainer.tearDownClass();
 	}
@@ -424,7 +426,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		final FileSystem endpoint = endpoints.values().iterator().next();
 
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
-		dataItem.setName("0000");
+		dataItem.setName("7777");
 		dataItem.setDataInput(DATA_INPUT);
 		final DataIoTask<DataItem> createTask = new BasicDataIoTask<>(
 			0, IoType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
