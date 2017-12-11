@@ -1,38 +1,63 @@
 language: java
-sudo: required
+
+sudo: true
+
 addons:
   ulimit:
     nofile: 1048576
-before_install:
-- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-- sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-- sudo apt-get update
-- sudo apt-get -y install docker-ce
-script: "./gradlew clean test jar"
-deploy:
-  skip_cleanup: true
-  provider: releases
-  api_key:
-    secure: LB0I2j3QWoR65Ty15ib8XV5ozIot72pD+6Mx1rcFht2VRajJPwqzOioH//pXHGKXgXNSaefqYqk19IrOFqrG3gykXsJO3AInVjtnt+g9vuPhjA+bXQxbfp8sTc99u6X7NalZB33SZy+O9N3S2tQ0pRtrsNfXKOrBPsro6LGDcZOYGHL2c2KMkFUF3LjPi1wSvea03DqIBCdvUhmD86krKJsNpK5lklz5HCADLfzp5VAERp1gAEYDvTXkn7wJiZhefbROPV0IoIBXjdKMTth3dEMsVObtD4eMXC3uiC90Jl+z/TzMxZ7H1vIobZtuNn6dZB32kMJRwLDK2DZ8kZiBkA7qXXHhRN2R/r84LUiGdp27QkV/ECiAMJjAae0zLaAp2rW1PA4OTFrVLuDcRBZIugLmAavZDD+k1rrF5ueFhSyw5w7mtFRLB2RMojwQ6U3i7Qf1NL37EHCTgGR5R9hzot+WQhNBqwrOUnkIlYDqNv20dfLEQyTVyustTeh7hvSrp2JDUIimAgojXW4X36R1zVtVH4fhKbay6dLncS9N+3bB1EpES+a0d4LTCYbuJwkg6VQYi9kfLBHMSLFQgMqKAIJrq9nkYQTmW5b423nyN7H85g5IQ8YGVeK6yHkNWXUMG6v9233aLG1BeB04X5ftzWo/7G3ra9ACvJ4Bvrg2Zo8=
-  file: "./build/libs/mongoose-storage-driver-hdfs.jar"
-  on:
-    tags: true
+
 env:
   global:
   - COMMIT=${TRAVIS_COMMIT::8}
   - secure: "WdObWHl7HiXMSESx5lo6nJtxYR4EMHaQILvqUby5ih/xroKpOtE50AqxJyy9bSdv+zCcZnhD/PVx1uz9hvIipki6RpxudLfLPyAKFUYM1HYDNO44TKoZrq9KUb0f7d814HEbgZLM9ADCHNiJ89WkIoWPRH71/iwVu16f28rpVswO7Rx1jXeLWHYCqJpaTFBVJEiXvQtD68HQOHXHW4qzRX3/omf2i+5AZ7YEpYHNh7rkl0toYnJnwyi/HEhz44IsShbUU8WAoJM+PYKhEiqUzaTsrzklO3OJjiTLYQNCfTMzEKVGDH2xlQSlblNpRKYC1QxYwBdhGFX8Le8j4wSifJooG1a80Q5JYGWW8aLQcMKIsgLzkjg8DJxQC9mFr77+bNxijrokjTa24LvYl0qyOxSp+Laxh0kuKmsVOGsNoor1WY6reWQnY+YRS0AW1+plfEPn4UEhOk7BhIGxhl8JvUwAt94xgFTXVcfIIgScttFMejMnFl5snpdbAmIyWozZhJi4De30x/Q3wLDyNAM6Z8D9GeLfB9c4+P83r5id4djd52tRE4orTUeKU8MgjE2xdBeumv1wpkU+YNOHHkTw5NRBKOm3ycF5wmeYVG9bIblFCMZoEhJUmCjmwUPvaGvmI+c8cgnmx6qteP1vbyZqwt2819Rb4Ir+5TkKS0P2590="
   - secure: "d2d38X9FqoO3awomYCH+JaOISNgOT4Di+2MMbiMhnivuWMLVPvRZPfu3vrov5WAq3yhb4mgRB2MC3PpCIpotTQZ95B7wx1X85LFp+FHk+n4xrtwwUbBoow9Xw7O50PRa5EZDgx7mvdKjIiUyauwxhORocT4OSWjafjv+grQXJ9RQJEp2MD6KPpIpA/qegogatMU+ormeI0ekW9pXr0aDkMI5cEGhuVgcZLCFnJ/2hsAPvfBiKcRQEQ2mBKeeOYyW2UKgaN9Zwzr17m8zf7lweap5LmUhhtcpC2w/y4sJcNrcf1QckHkpgY6DUBv5rp64I2073/uqgQHBj3n5HCjlWiulmIFyZir4LcuL8FuiCo9+yVTcpqwqCvlfuJprlJICvuIKkFhAh8GmZ34jGb88VGbJVsBSRZ0yn0QNfnPkew41Nf1IV1ZMlGrwIH0N3KUvXEAFHrq+8ubp2IiPCJZx9vhziNd/fy5vsM0+3mqiRvsXwknHInXpHGfDyCf3321J/MD+8VTUljxm9BzgWyX/GQGrAXNA08+gcB/zS+O+XuF7sWMi9wqQ7mlf68PyhOwWqjL28NtwMsdwZ1ZTNQRuOiQ6KWV2JdAsDRwRNuHs5ebIRcLIl42vgRebRZHDRJGRpZH0izhZ6ny/nu+GrriY2ADA05OQgK9sEEzDowGJ9ck="
-after_success:
-- echo $DOCKER_PASS
-- docker login -u $DOCKER_USER -p $DOCKER_PASS
-- export REPO=emcmongoose/mongoose-storage-driver-hdfs
-- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
-- docker build --build-arg MONGOOSE_VERSION=next -f docker/Dockerfile -t $REPO:$COMMIT .
-- docker tag $REPO:$COMMIT $REPO:$TAG
-- docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
-- docker push $REPO
-- export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
-- docker build --build-arg MONGOOSE_VERSION=next -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
-- docker tag $REPO:$COMMIT $REPO:$TAG
-- docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
-- docker push $REPO
+
+before_install:
+- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+- sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+- sudo apt-get update
+- sudo apt-get -y install docker-ce
+
+jobs:
+  include:
+
+    - stage: "Integration Tests"
+      script: "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
+
+    - stage: "System Tests"
+      script:
+      - ./gradlew clean jar
+      - docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - export REPO=emcmongoose/mongoose-storage-driver-hdfs
+      - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile -t $REPO:$COMMIT .
+      - export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
+      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
+      - export IMAGE_VERSION=$COMMIT
+      - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
+
+    - stage: "Deploy to DockerHub"
+      script:
+      - ./gradlew clean jar
+      - docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - export REPO=emcmongoose/mongoose-storage-driver-hdfs
+      - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile -t $REPO:$COMMIT .
+      - docker tag $REPO:$COMMIT $REPO:$TAG
+      - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
+      - docker push $REPO
+      - export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
+      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
+      - docker tag $REPO:$COMMIT $REPO:$TAG
+      - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
+      - docker push $REPO
+
+    - stage: "Deploy to GitHub releases"
+      deploy:
+        skip_cleanup: true
+        provider: releases
+        api_key:
+          secure: LB0I2j3QWoR65Ty15ib8XV5ozIot72pD+6Mx1rcFht2VRajJPwqzOioH//pXHGKXgXNSaefqYqk19IrOFqrG3gykXsJO3AInVjtnt+g9vuPhjA+bXQxbfp8sTc99u6X7NalZB33SZy+O9N3S2tQ0pRtrsNfXKOrBPsro6LGDcZOYGHL2c2KMkFUF3LjPi1wSvea03DqIBCdvUhmD86krKJsNpK5lklz5HCADLfzp5VAERp1gAEYDvTXkn7wJiZhefbROPV0IoIBXjdKMTth3dEMsVObtD4eMXC3uiC90Jl+z/TzMxZ7H1vIobZtuNn6dZB32kMJRwLDK2DZ8kZiBkA7qXXHhRN2R/r84LUiGdp27QkV/ECiAMJjAae0zLaAp2rW1PA4OTFrVLuDcRBZIugLmAavZDD+k1rrF5ueFhSyw5w7mtFRLB2RMojwQ6U3i7Qf1NL37EHCTgGR5R9hzot+WQhNBqwrOUnkIlYDqNv20dfLEQyTVyustTeh7hvSrp2JDUIimAgojXW4X36R1zVtVH4fhKbay6dLncS9N+3bB1EpES+a0d4LTCYbuJwkg6VQYi9kfLBHMSLFQgMqKAIJrq9nkYQTmW5b423nyN7H85g5IQ8YGVeK6yHkNWXUMG6v9233aLG1BeB04X5ftzWo/7G3ra9ACvJ4Bvrg2Zo8=
+        file: "./build/libs/mongoose-storage-driver-hdfs.jar"
+        on:
+          tags: true

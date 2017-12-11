@@ -149,8 +149,8 @@ java -jar mongoose-<VER>/mongoose.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \
+    --load-limit-concurrency=10 \
     --storage-auth-uid=root \
-    --storage-driver-concurrency=10 \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<HADOOP_NAME_NODE_IP_ADDR> \
     --storage-net-node-port=9000 \

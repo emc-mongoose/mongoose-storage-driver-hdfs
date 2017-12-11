@@ -6,7 +6,7 @@ import com.emc.mongoose.api.model.item.ItemType;
 import com.emc.mongoose.api.model.item.PathItem;
 import com.emc.mongoose.api.model.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.item.ItemConfig;
 import com.emc.mongoose.ui.config.load.LoadConfig;
@@ -18,7 +18,9 @@ import com.emc.mongoose.ui.config.storage.driver.DriverConfig;
 import com.emc.mongoose.ui.config.storage.driver.queue.QueueConfig;
 import com.emc.mongoose.ui.config.storage.net.NetConfig;
 import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
+
 import com.github.akurilov.commons.system.SizeInBytes;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,6 +31,7 @@ public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -97,13 +100,17 @@ extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 	@BeforeClass
 	public static void setUpClass()
 	throws Exception {
-		HdfsNodeContainer.setUpClass();
+		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+		} catch(final Exception e) {
+			throw new AssertionError(e);
+		}
 	}
 
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
-		HdfsNodeContainer.tearDownClass();
+		HDFS_NODE_CONTAINER.close();
 	}
 
 	@Test

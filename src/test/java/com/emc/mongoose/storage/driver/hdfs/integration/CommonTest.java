@@ -8,7 +8,7 @@ import com.emc.mongoose.api.model.item.Item;
 import com.emc.mongoose.api.model.item.ItemFactory;
 import com.emc.mongoose.api.model.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNodeContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.ui.config.Config;
 import com.emc.mongoose.ui.config.load.LoadConfig;
 import com.emc.mongoose.ui.config.load.batch.BatchConfig;
@@ -27,7 +27,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -53,6 +52,7 @@ extends HdfsStorageDriver {
 	}
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -118,13 +118,17 @@ extends HdfsStorageDriver {
 	@BeforeClass
 	public static void setUpClass()
 	throws Exception {
-		HdfsNodeContainer.setUpClass();
+		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+		} catch(final Exception e) {
+			throw new AssertionError(e);
+		}
 	}
 
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
-		HdfsNodeContainer.tearDownClass();
+		HDFS_NODE_CONTAINER.close();
 	}
 
 	@Test

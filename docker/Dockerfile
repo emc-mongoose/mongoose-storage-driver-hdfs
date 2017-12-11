@@ -2,4 +2,4 @@ ARG MONGOOSE_VERSION
 
 FROM emcmongoose/mongoose-base:${MONGOOSE_VERSION}
 
-ADD build/dist/mongoose-*.tgz /opt/
+ADD ["./build/libs/mongoose-storage-driver-hdfs.jar", "/opt/mongoose/ext/mongoose-storage-driver-hdfs.jar"]

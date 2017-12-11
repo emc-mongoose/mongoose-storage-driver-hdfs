@@ -29,7 +29,7 @@ ext {
 		commonsJava: "[1.4.0,)",
 		disruptor: "3.3.4",
 		dockerJava: "[3.0.13,)",
-		hadoop: "2.9.0",
+		hadoop: "2.8.2",
 		log4j: "2.8.2",
 		mongoose: "[3.,4.)",
 	]
