@@ -135,9 +135,14 @@ extends NioStorageDriverBase<I, O> {
 			}
 			final String uid = credential == null ? null : credential.getUid();
 			final URI endpointUri = new URI(DEFAULT_URI_SCHEMA, uid, addr, port, "/", null, null);
+			// set the temporary thread's context classloader
+			Thread.currentThread().setContextClassLoader(Extensions.CLS_LOADER);
 			return FileSystem.get(endpointUri, hadoopConfig);
 		} catch(final URISyntaxException | IOException e) {
 			throw new RuntimeException(e);
+		} finally {
+			// set the thread's context classloader back
+			Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
 		}
 	}
 
