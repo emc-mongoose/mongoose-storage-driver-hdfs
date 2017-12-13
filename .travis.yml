@@ -26,14 +26,7 @@ jobs:
 
     - stage: "System Tests"
       script:
-      - ./gradlew clean jar
-      - docker login -u $DOCKER_USER -p $DOCKER_PASS
-      - export REPO=emcmongoose/mongoose-storage-driver-hdfs
-      - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile -t $REPO:$COMMIT .
-      - export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
-      - export IMAGE_VERSION=$COMMIT
+      - "./gradlew clean jar"
       - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
 
     - stage: "Deploy to DockerHub"

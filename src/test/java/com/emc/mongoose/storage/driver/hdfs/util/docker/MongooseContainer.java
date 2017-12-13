@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.command.BuildImageResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
 import java.io.Closeable;
@@ -16,20 +17,19 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class MongooseContainer
 implements Runnable, Closeable {
 
+	private static final Logger LOG = Logger.getLogger(MongooseContainer.class.getSimpleName());
 	private static final String BASE_DIR = Paths.get(".").toAbsolutePath().normalize().toString();
 
-	private static final String IMAGE_VERSION = System.getenv("IMAGE_VERSION") == null ?
-		"latest" : System.getenv("IMAGE_VERSION");
-	private static final String IMAGE_NAME = "emcmongoose/mongoose-storage-driver-hdfs:"
-		+ IMAGE_VERSION;
 	public static final String CONTAINER_SHARE_PATH = "/opt/mongoose/share";
 	public static final Path HOST_SHARE_PATH = Paths.get(BASE_DIR, "share");
 	static {
@@ -73,6 +73,23 @@ implements Runnable, Closeable {
 		this.durationLimitSeconds = durationLimitSeconds;
 
 		this.dockerClient = DockerClientBuilder.getInstance().build();
+
+		final File dockerBuildFile = Paths
+			.get(BASE_DIR.toString(), "docker", "Dockerfile")
+			.toFile();
+		LOG.info("Build mongoose image w/ HDFS support using the dockerfile " + dockerBuildFile);
+		final BuildImageResultCallback buildImageResultCallback = new BuildImageResultCallback();
+		this.dockerClient
+			.buildImageCmd()
+			.withBaseDirectory(new File(BASE_DIR))
+			.withDockerfile(dockerBuildFile)
+			.withBuildArg("MONGOOSE_VERSION", "integration")
+			.withPull(true)
+			.withTags(Collections.singleton("emcmongoose/mongoose-storage-driver-hdfs:testing"))
+			.exec(buildImageResultCallback);
+		final String testingImageId = buildImageResultCallback.awaitImageId();
+		LOG.info("Build mongoose testing image id: " + testingImageId);
+
 		this.configArgs.add("--storage-driver-type=hdfs");
 		this.configArgs.add("--output-metrics-trace-persist=true");
 		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
@@ -110,7 +127,7 @@ implements Runnable, Closeable {
 		cmd.addAll(this.configArgs);
 		final StringJoiner cmdLine = new StringJoiner(" ");
 		cmd.forEach(cmdLine::add);
-		System.out.println("Container arguments: " + cmdLine.toString());
+		LOG.info("Mongoose test container arguments: " + cmdLine.toString());
 
 		final Volume volumeShare = new Volume(CONTAINER_SHARE_PATH);
 		final Volume volumeLog = new Volume(CONTAINER_LOG_PATH);
@@ -131,7 +148,7 @@ implements Runnable, Closeable {
 		}
 
 		final CreateContainerResponse container = dockerClient
-			.createContainerCmd(IMAGE_NAME)
+			.createContainerCmd(testingImageId)
 			.withName("mongoose")
 			.withNetworkMode("host")
 			.withExposedPorts(ExposedPort.tcp(9010), ExposedPort.tcp(5005))
@@ -145,12 +162,16 @@ implements Runnable, Closeable {
 			.exec();
 
 		testContainerId = container.getId();
+		LOG.info("Created the mongoose test container w/ id: " + testContainerId);
 	}
 
 	public final void clearLogs(final String stepId) {
 		final File logDir = Paths.get(HOST_LOG_PATH.toString(), stepId).toFile();
-		for(final File logFile : logDir.listFiles()) {
-			logFile.delete();
+		final File[] logDirFiles = logDir.listFiles();
+		if(logDirFiles != null) {
+			for(final File logFile : logDirFiles) {
+				logFile.delete();
+			}
 		}
 		logDir.delete();
 	}

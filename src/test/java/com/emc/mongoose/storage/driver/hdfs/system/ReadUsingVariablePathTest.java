@@ -63,10 +63,10 @@ public class ReadUsingVariablePathTest {
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
 		args.add("--test-step-id=" + STEP_ID);
-		args.add("--test-scenario-file=" + hostScenarioPath.toString());
+		args.add("--test-scenario-file=" + hostScenarioPath);
 		args.add("--item-naming-radix=16");
 		args.add("--item-naming-length=16");
-		EnvUtil.set("CONCURRENCY", Integer.toString(CONCURRENCY));
+		args.add("--load-limit-concurrency=" + CONCURRENCY);
 		EnvUtil.set("ITEM_LIST_FILE", ITEM_LIST_FILE);
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
 		EnvUtil.set("ITEM_OUTPUT_PATH", ITEM_OUTPUT_PATH);

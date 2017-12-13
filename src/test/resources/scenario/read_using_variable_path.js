@@ -14,11 +14,6 @@ PreconditionLoad
 					"path": ITEM_OUTPUT_PATH + "/%p{16;2}"
 				}
 			},
-			"load": {
-				"limit": {
-					"concurrency": CONCURRENCY,
-				}
-			},
 			"test": {
 				"step": {
 					"limit": {
