@@ -6,9 +6,24 @@ PreconditionLoad
 	.config(
 		{
 			"item": {
+				"data" : {
+					"size": ITEM_DATA_SIZE
+				},
 				"output": {
 					"file": ITEM_LIST_FILE,
 					"path": ITEM_OUTPUT_PATH + "/%p{16;2}"
+				}
+			},
+			"load": {
+				"limit": {
+					"concurrency": CONCURRENCY,
+				}
+			},
+			"test": {
+				"step": {
+					"limit": {
+						"count": STEP_LIMIT_COUNT
+					}
 				}
 			}
 		}

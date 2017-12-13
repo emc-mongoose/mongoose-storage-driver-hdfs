@@ -19,7 +19,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -47,6 +46,7 @@ public interface FileIoHelper {
 			final WritableByteChannel outputChan = OutputStreamWrapperChannel
 				.getThreadLocalInstance(outputStream, remainingBytes);
 			countBytesDone += fileItem.writeToSocketChannel(outputChan, remainingBytes);
+			outputStream.hflush();
 			fileIoTask.setCountBytesDone(countBytesDone);
 		}
 
@@ -74,6 +74,7 @@ public interface FileIoHelper {
 				];
 			final int n = inputStream.read(buff, 0, buff.length);
 			outputStream.write(buff, 0, n);
+			outputStream.hflush();
 			countBytesDone += n;
 			fileIoTask.setCountBytesDone(countBytesDone);
 		}
@@ -478,6 +479,7 @@ public interface FileIoHelper {
 			final WritableByteChannel outputChan = OutputStreamWrapperChannel
 				.getThreadLocalInstance(outputStream, remainingSize);
 			n = fileItem.writeToSocketChannel(outputChan, remainingSize);
+			outputStream.hflush();
 			ioTask.setCountBytesDone(countBytesDone + n);
 			fileItem.size(fileItem.size() + n);
 		}

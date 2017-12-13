@@ -11,6 +11,7 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -144,6 +145,14 @@ implements Runnable, Closeable {
 			.exec();
 
 		testContainerId = container.getId();
+	}
+
+	public final void clearLogs(final String stepId) {
+		final File logDir = Paths.get(HOST_LOG_PATH.toString(), stepId).toFile();
+		for(final File logFile : logDir.listFiles()) {
+			logFile.delete();
+		}
+		logDir.delete();
 	}
 
 	@Override

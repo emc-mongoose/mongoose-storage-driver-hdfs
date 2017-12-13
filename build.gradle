@@ -26,10 +26,10 @@ repositories {
 ext {
 
 	depVersion = [
-		commonsJava: "[1.4.0,)",
+		commonsJava: "[1.4.1,)",
 		disruptor: "3.3.4",
 		dockerJava: "[3.0.13,)",
-		hadoop: "2.8.2",
+		hadoop: "2.9.0",
 		log4j: "2.8.2",
 		mongoose: "[3.,4.)",
 	]
@@ -72,11 +72,13 @@ dependencies {
 	testCompile(
 		"junit:junit:[4,)",
 		"com.github.docker-java:docker-java:${depVersion.dockerJava}",
+		"com.github.emc-mongoose:mongoose-api-metrics:${depVersion.mongoose}",
 		"com.github.emc-mongoose:mongoose-storage-driver-nio:${depVersion.mongoose}",
 		"com.github.emc-mongoose:mongoose-ui:${depVersion.mongoose}",
 		"com.github.akurilov:java-commons:${depVersion.commonsJava}",
 		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
 		"org.apache.logging.log4j:log4j-core:${depVersion.log4j}",
+		"org.apache.commons:commons-csv:1.1",
 	)
 
 	testRuntime(
