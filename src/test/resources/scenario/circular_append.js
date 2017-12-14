@@ -1,19 +1,22 @@
 Command
-	.value("rm -f CircularAppendTest0.csv CircularAppendTest1.csv")
+	.value("rm -f " + ITEM_LIST_FILE_0 + " " + ITEM_LIST_FILE_1)
 	.run();
 
 PreconditionLoad
 	.config(
 		{
 			"item": {
+				"data" : {
+					"size": ITEM_DATA_SIZE
+				},
 				"output": {
-					"file": "CircularAppendTest0.csv"
+					"file": ITEM_LIST_FILE_0
 				}
 			},
 			"test": {
 				"step": {
 					"limit": {
-						"count": 100
+						"count": BASE_ITEMS_COUNT
 					}
 				}
 			}
@@ -27,14 +30,14 @@ Load
 			"item": {
 				"data": {
 					"ranges": {
-						"fixed": "-${ITEM_DATA_SIZE}-"
+						"fixed": "-" + ITEM_DATA_SIZE + "-"
 					}
 				},
 				"input": {
-					"file": "CircularAppendTest0.csv"
+					"file": ITEM_LIST_FILE_0
 				},
 				"output": {
-					"file": "CircularAppendTest1.csv"
+					"file": ITEM_LIST_FILE_1
 				}
 			},
 			"load": {
@@ -48,7 +51,7 @@ Load
 			"test": {
 				"step": {
 					"limit": {
-						"count": 10000 // append each of 100 data items approx 100 times
+						"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
 					}
 				}
 			}

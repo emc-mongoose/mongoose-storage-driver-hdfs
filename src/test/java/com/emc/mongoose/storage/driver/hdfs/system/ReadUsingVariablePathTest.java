@@ -35,7 +35,7 @@ public class ReadUsingVariablePathTest {
 	private static final String SCENARIO_FILE = "scenario" + File.separator
 		+ "read_using_variable_path.js";
 	private static final String ITEM_LIST_FILE = CONTAINER_SHARE_PATH + File.separator
-		+ "items.csv";
+		+ "read_using_variable_path_items.csv";
 	private static final String ITEM_OUTPUT_PATH = "/"
 		+ ReadUsingVariablePathTest.class.getSimpleName();
 	private static final String STEP_ID = ReadUsingVariablePathTest.class.getSimpleName();
