@@ -53,6 +53,9 @@ directory of Mongoose to be automatically loaded into the runtime.
 ```bash
 java -jar mongoose-<VERSION>/mongoose.jar \
     --storage-driver-type=hdfs \
+    --storage-net-node-addrs=<NODE_IP_ADDRS> \
+    --storage-net-node-port=<NODE_PORT> \
+    --storage-auth-uid=<USER_ID> \
     ...
 ```
 
@@ -67,6 +70,9 @@ docker run \
     emcmongoose/mongoose-storage-driver-hdfs \
     -jar /opt/mongoose/mongoose.jar \
     --storage-type=hdfs \
+    --storage-net-node-addrs=<NODE_IP_ADDRS> \
+    --storage-net-node-port=<NODE_PORT> \
+    --storage-auth-uid=<USER_ID> \
     ...
 ```
 
@@ -92,6 +98,9 @@ docker run \
     --storage-driver-remote \
     --storage-driver-addrs=<ADDR1,ADDR2,...> \
     --storage-driver-type=hdfs \
+    --storage-net-node-addrs=<NODE_IP_ADDRS> \
+    --storage-net-node-port=<NODE_PORT> \
+    --storage-auth-uid=<USER_ID> \
     ...
 ```
 
