@@ -350,6 +350,7 @@ extends NioStorageDriverBase<I, O> {
 										fileIoTask.getMarkedRangesMaskPair()
 									)
 								) {
+									fileIoTask.setCountBytesDone(fileIoTask.getMarkedRangesSize());
 									finishIoTask((O) fileIoTask);
 								}
 							} else {
