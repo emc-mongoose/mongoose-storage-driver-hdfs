@@ -60,8 +60,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
 extends NioStorageDriverBase<I, O> {
 
-	public static final String DEFAULT_URI_SCHEMA = "hdfs";
-
+	private final String uriSchema;
 	protected final Configuration hadoopConfig;
 	protected final FsPermission defaultFsPerm;
 	protected final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
@@ -77,12 +76,13 @@ extends NioStorageDriverBase<I, O> {
 	private int outBuffSize = BUFF_SIZE_MAX;
 
 	public HdfsStorageDriver(
-		final String testStepId, final DataInput dataInput, final LoadConfig loadConfig,
-		final StorageConfig storageConfig, final boolean verifyFlag
+		final String uriSchema, final String testStepId, final DataInput dataInput,
+		final LoadConfig loadConfig, final StorageConfig storageConfig, final boolean verifyFlag
 	) throws OmgShootMyFootException {
 
 		super(testStepId, dataInput, loadConfig, storageConfig, verifyFlag);
 
+		this.uriSchema = uriSchema;
 		hadoopConfig = new Configuration();
 		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		defaultFsPerm = FsPermission
@@ -134,7 +134,7 @@ extends NioStorageDriverBase<I, O> {
 				port = nodePort;
 			}
 			final String uid = credential == null ? null : credential.getUid();
-			final URI endpointUri = new URI(DEFAULT_URI_SCHEMA, uid, addr, port, "/", null, null);
+			final URI endpointUri = new URI(uriSchema, uid, addr, port, "/", null, null);
 			// set the temporary thread's context classloader
 			Thread.currentThread().setContextClassLoader(Extensions.CLS_LOADER);
 			return FileSystem.get(endpointUri, hadoopConfig);

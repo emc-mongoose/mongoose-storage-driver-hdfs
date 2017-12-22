@@ -26,7 +26,7 @@ implements StorageDriverFactory<I, O, T> {
 		final StorageConfig storageConfig, final boolean verifyFlag
 	) throws OmgShootMyFootException, InterruptedException {
 		return (T) new HdfsStorageDriver<I, O>(
-			stepId, dataInput, loadConfig, storageConfig, verifyFlag
+			NAME, stepId, dataInput, loadConfig, storageConfig, verifyFlag
 		);
 	}
 }
