@@ -109,7 +109,7 @@ extends NioStorageDriverBase<I, O> {
 		return endpointAddrs[rrc.getAndIncrement() % endpointAddrs.length];
 	}
 
-	private FileSystem getEndpoint(final String nodeAddr) {
+	protected FileSystem getEndpoint(final String nodeAddr) {
 		try {
 			final String addr;
 			final int port;

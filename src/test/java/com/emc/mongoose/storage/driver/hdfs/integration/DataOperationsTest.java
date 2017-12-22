@@ -156,7 +156,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		assertEquals(IoTask.Status.SUCC, createTask.getStatus());
 		assertEquals(dataItem.size(), createTask.getCountBytesDone());
 
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint("127.0.0.1");
 		final FileStatus fileStatus = endpoint.getFileStatus(
 			new Path("/default", dataItem.getName())
 		);
@@ -185,14 +185,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.CREATE, dataItem, createTask.getDstPath(), "/copies", CREDENTIAL,
 			null, 0, null
 		);
-		copyTask.setNodeAddr(endpoints.keySet().iterator().next());
+		copyTask.setNodeAddr(endpointAddrs[0]);
 		copyTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(copyTask.getStatus())) {
 			invokeNio(copyTask);
 		}
 		assertEquals(IoTask.Status.SUCC, copyTask.getStatus());
 
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint(endpointAddrs[0]);
 		final FileStatus fileStatus = endpoint.getFileStatus(
 			new Path("/copies", dataItem.getName())
 		);
@@ -247,7 +247,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 		}
 		assertEquals(IoTask.Status.SUCC, concatTask.getStatus());
 
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint(endpointAddrs[0]);
 		final FileStatus fileStatus = endpoint.getFileStatus(
 			new Path("/default", dstItem.getName())
 		);
@@ -276,7 +276,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
 			null, 0, null
 		);
-		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setNodeAddr(endpointAddrs[0]);
 		readTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
 			invokeNio(readTask);
@@ -309,7 +309,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
 			fixedRanges, 0, null
 		);
-		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setNodeAddr(endpointAddrs[0]);
 		readTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
 			invokeNio(readTask);
@@ -339,7 +339,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.READ, dataItem, createTask.getDstPath(), null, CREDENTIAL,
 			null, 10, null
 		);
-		readTask.setNodeAddr(endpoints.keySet().iterator().next());
+		readTask.setNodeAddr(endpointAddrs[0]);
 		readTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(readTask.getStatus())) {
 			invokeNio(readTask);
@@ -370,14 +370,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.UPDATE, dataItem, createTask.getDstPath(), null, CREDENTIAL,
 			null, 0, null
 		);
-		overwriteTask.setNodeAddr(endpoints.keySet().iterator().next());
+		overwriteTask.setNodeAddr(endpointAddrs[0]);
 		overwriteTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(overwriteTask.getStatus())) {
 			invokeNio(overwriteTask);
 		}
 		assertEquals(IoTask.Status.SUCC, overwriteTask.getStatus());
 		assertEquals(MIB, overwriteTask.getCountBytesDone());
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint(endpointAddrs[0]);
 		final FileStatus fileStatus = endpoint.getFileStatus(
 			new Path("/default", dataItem.getName())
 		);
@@ -406,14 +406,14 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 			0, IoType.UPDATE, dataItem, createTask.getDstPath(), null, CREDENTIAL,
 			Collections.singletonList(new Range(-1, -1, MIB)), 0, null
 		);
-		appendTask.setNodeAddr(endpoints.keySet().iterator().next());
+		appendTask.setNodeAddr(endpointAddrs[0]);
 		appendTask.setStatus(IoTask.Status.ACTIVE);
 		while(IoTask.Status.ACTIVE.equals(appendTask.getStatus())) {
 			invokeNio(appendTask);
 		}
 		assertEquals(IoTask.Status.SUCC, appendTask.getStatus());
 		assertEquals(MIB, appendTask.getCountBytesDone());
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint(endpointAddrs[0]);
 		final FileStatus fileStatus = endpoint.getFileStatus(
 			new Path("/default", dataItem.getName())
 		);
@@ -426,7 +426,7 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	public final void testDeleteFile()
 	throws Exception {
 
-		final FileSystem endpoint = endpoints.values().iterator().next();
+		final FileSystem endpoint = getEndpoint(endpointAddrs[0]);
 
 		final DataItem dataItem = new BasicDataItem(0, MIB, 0);
 		dataItem.setName("7777");

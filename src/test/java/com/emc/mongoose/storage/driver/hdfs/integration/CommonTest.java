@@ -134,7 +134,7 @@ extends HdfsStorageDriver {
 	@Test
 	public final void testGetEndpoint()
 	throws Exception {
-		final FileSystem fs = getEndpoint("127.0.0.1");
+		final FileSystem fs = getEndpoint(endpointAddrs[0]);
 		assertNotNull(fs);
 		fs.close();
 	}
@@ -143,7 +143,7 @@ extends HdfsStorageDriver {
 	public final void testDirectoryListing()
 	throws Exception {
 
-		final FileSystem fs = (FileSystem) endpoints.values().iterator().next();
+		final FileSystem fs = getEndpoint(endpointAddrs[0]);
 		final String parentDirPath = "/default";
 		final int fileCount = 4321;
 		final int fileSize = 0x10_00_00;
