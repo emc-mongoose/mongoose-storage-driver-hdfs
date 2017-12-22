@@ -110,7 +110,7 @@ extends HdfsStorageDriver {
 	private CommonTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"test-common-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
+			"hdfs", "test-common-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
 			config.getStorageConfig(), false
 		);
 	}

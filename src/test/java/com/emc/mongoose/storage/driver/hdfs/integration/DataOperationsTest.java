@@ -117,8 +117,8 @@ extends HdfsStorageDriver<DataItem, DataIoTask<DataItem>> {
 	private DataOperationsTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"test-data-hdfs-driver", DATA_INPUT, config.getLoadConfig(), config.getStorageConfig(),
-			true
+			"hdfs", "test-data-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
+			config.getStorageConfig(), true
 		);
 	}
 
