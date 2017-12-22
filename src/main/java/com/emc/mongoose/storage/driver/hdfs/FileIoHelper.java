@@ -28,6 +28,14 @@ import java.util.List;
 
 public interface FileIoHelper {
 
+	static Path getFilePath(final String basePath, final String fileName) {
+		if(basePath == null || basePath.isEmpty() || fileName.startsWith(basePath)) {
+			return new Path(fileName);
+		} else {
+			return new Path(basePath, fileName);
+		}
+	}
+
 	static boolean invokeFileCreate(
 		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
 		final FSDataOutputStream outputStream
@@ -485,32 +493,5 @@ public interface FileIoHelper {
 		}
 
 		return remainingSize <= 0;
-	}
-
-	static boolean invokeFileDelete(
-		final DataIoTask<? extends DataItem> fileIoTask, final FileSystem endpoint
-	) throws IOException {
-
-		final String dstPath = fileIoTask.getDstPath();
-		final DataItem fileItem = fileIoTask.getItem();
-		final String itemName = fileItem.getName();
-		final Path filePath;
-		if(dstPath == null || dstPath.isEmpty() || itemName.startsWith(dstPath)) {
-			filePath = new Path(itemName);
-		} else {
-			filePath = new Path(dstPath, itemName);
-		}
-
-		if(!endpoint.delete(filePath, false)) {
-			Loggers.ERR.debug(
-				"Failed to delete the file {} @ {}", filePath,
-				endpoint.getCanonicalServiceName()
-			);
-			fileIoTask.startResponse();
-			fileIoTask.finishResponse();
-			fileIoTask.setStatus(IoTask.Status.RESP_FAIL_UNKNOWN);
-		}
-
-		return true;
 	}
 }
