@@ -64,7 +64,7 @@ extends NioStorageDriverBase<I, O> {
 	protected final Configuration hadoopConfig;
 	protected final FsPermission defaultFsPerm;
 	protected final ConcurrentMap<String, FileSystem> endpoints = new ConcurrentHashMap<>();
-	private final String[] endpointAddrs;
+	protected final String[] endpointAddrs;
 	private final AtomicInteger rrc = new AtomicInteger(0);
 	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataInputStream>
 		fileInputStreams = new ConcurrentHashMap<>();
@@ -98,6 +98,12 @@ extends NioStorageDriverBase<I, O> {
 		nodePort = storageConfig.getNetConfig().getNodeConfig().getPort();
 		final List<String> endpointAddrList = nodeConfig.getAddrs();
 		endpointAddrs = endpointAddrList.toArray(new String[endpointAddrList.size()]);
+		prepareEndpoints();
+		requestAuthTokenFunc = null; // do not use
+		requestNewPathFunc = null; // do not use
+	}
+
+	protected void prepareEndpoints() {
 		for(final String nodeAddr: endpointAddrs) {
 			try {
 				endpoints.computeIfAbsent(nodeAddr, this::getEndpoint);
@@ -112,9 +118,6 @@ extends NioStorageDriverBase<I, O> {
 				}
 			}
 		}
-
-		requestAuthTokenFunc = null; // do not use
-		requestNewPathFunc = null; // do not use
 	}
 
 	protected String getNextEndpointAddr() {
