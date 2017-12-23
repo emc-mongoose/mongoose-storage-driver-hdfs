@@ -105,7 +105,7 @@ extends NioStorageDriverBase<I, O> {
 		requestNewPathFunc = null; // do not use
 	}
 
-	private String getNextEndpointAddr() {
+	protected final String getNextEndpointAddr() {
 		return endpointAddrs[rrc.getAndIncrement() % endpointAddrs.length];
 	}
 
