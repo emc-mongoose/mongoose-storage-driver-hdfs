@@ -554,4 +554,9 @@ extends NioStorageDriverBase<I, O> {
 			FileSystem.closeAll();
 		}
 	}
+
+	@Override
+	public String toString() {
+		return String.format(super.toString(), "hdfs");
+	}
 }
