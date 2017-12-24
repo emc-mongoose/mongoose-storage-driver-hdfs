@@ -143,7 +143,7 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	private static Path getFilePath(final String basePath, final String fileName) {
+	protected static Path getFilePath(final String basePath, final String fileName) {
 		if(basePath == null || basePath.isEmpty() || fileName.startsWith(basePath)) {
 			return new Path(fileName);
 		} else {
