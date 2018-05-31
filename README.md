@@ -8,14 +8,14 @@ driver
 
 # Introduction
 
-The storage driver extends the Mongoose's [Abstract NIO Storage Driver](https://github.com/emc-mongoose/mongoose-base/wiki/v3.6-Extensions#22-nio-storage-driver)
+The storage driver extends the Mongoose's [Abstract NIO Storage Driver](https://github.com/emc-mongoose/mongoose-base/wiki/v4.0-Storage-Drivers#31-nio-storage-driver)
 and uses the following libraries:
 * hadoop-common
 * hadoop-hdfs-client
 
 # Features
 
-* Authentification: login, Kerberos
+* Authentification: simple
 * SSL/TLS - TODO
 * Item types:
     * `data`
@@ -47,7 +47,7 @@ and uses the following libraries:
 
 Latest stable pre-built jar file is available at:
 https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/latest/mongoose-storage-driver-hdfs.jar
-This jar file may be downloaded manually and placed into the `ext`
+This jar file may be downloaded manually and placed into the `<USER_HOME_DIR>/.mongoose/<VERSION>/ext`
 directory of Mongoose to be automatically loaded into the runtime.
 
 ```bash
@@ -66,10 +66,8 @@ java -jar mongoose-<VERSION>/mongoose.jar \
 ```bash
 docker run \
     --network host \
-    --entrypoint mongoose \
     emcmongoose/mongoose-storage-driver-hdfs \
-    -jar /opt/mongoose/mongoose.jar \
-    --storage-type=hdfs \
+    --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
     --storage-auth-uid=<USER_ID> \
@@ -78,13 +76,14 @@ docker run \
 
 ### Distributed
 
-#### Drivers
+#### Agent Node
 
 ```bash
 docker run \
     --network host \
     --expose 1099 \
-    emcmongoose/mongoose-storage-driver-service-hdfs
+    emcmongoose/mongoose-storage-driver-hdfs
+    --run-node
 ```
 
 #### Controller
@@ -92,11 +91,9 @@ docker run \
 ```bash
 docker run \
     --network host \
-    --entrypoint mongoose \
-    emcmongoose/mongoose-base \
-    -jar /opt/mongoose/mongoose.jar \
-    --storage-driver-remote \
-    --storage-driver-addrs=<ADDR1,ADDR2,...> \
+    emcmongoose/mongoose-storage-driver-hdfs \
+    --load-step-distributed \
+    --load-step-node-addrs=<ADDR1,ADDR2,...> \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
@@ -158,12 +155,12 @@ java -jar mongoose-<VER>/mongoose.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \
-    --load-limit-concurrency=10 \
+    --load-step-limit-concurrency=10 \
+    --load-step-limit-count=100 \
     --storage-auth-uid=root \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<HADOOP_NAME_NODE_IP_ADDR> \
-    --storage-net-node-port=9000 \
-    --test-step-limit-count=100
+    --storage-net-node-port=9000
 ```
 
 ### Operations

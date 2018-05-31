@@ -1,8 +1,8 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
-import com.emc.mongoose.api.model.item.DataItemFactory;
-import com.emc.mongoose.api.model.item.Item;
-import com.emc.mongoose.api.model.item.ItemFactory;
+import com.emc.mongoose.item.DataItemFactory;
+import com.emc.mongoose.item.Item;
+import com.emc.mongoose.item.ItemFactory;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;

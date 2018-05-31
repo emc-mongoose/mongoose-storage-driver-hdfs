@@ -1,8 +1,9 @@
-Command
-	.value("rm -f " + ITEM_LIST_FILE_0 + " " + ITEM_LIST_FILE_1)
-	.run();
+new java.lang.ProcessBuilder()
+	.command("sh", "-c", "rm -f " + ITEM_LIST_FILE_0 + " " + ITEM_LIST_FILE_1)
+	.start()
+	.waitFor();
 
-PreconditionLoad
+Load
 	.config(
 		{
 			"item": {
@@ -13,10 +14,20 @@ PreconditionLoad
 					"file": ITEM_LIST_FILE_0
 				}
 			},
-			"test": {
+			"load": {
 				"step": {
 					"limit": {
 						"count": BASE_ITEMS_COUNT
+					}
+				}
+			},
+			"output": {
+				"metrics": {
+					"average": {
+						"persist": false
+					},
+					"summary": {
+						"persist": false
 					}
 				}
 			}
@@ -46,14 +57,12 @@ Load
 					"recycle": {
 						"enabled": true
 					}
-				}
-			},
-			"test": {
+				},
 				"step": {
 					"limit": {
 						"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
 					}
-				}
+                }
 			}
 		}
 	)

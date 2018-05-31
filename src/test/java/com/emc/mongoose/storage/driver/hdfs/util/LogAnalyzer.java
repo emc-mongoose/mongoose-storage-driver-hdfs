@@ -1,16 +1,8 @@
 package com.emc.mongoose.storage.driver.hdfs.util;
 
-import com.emc.mongoose.api.model.io.IoType;
-import com.emc.mongoose.api.model.io.task.IoTask;
-import static com.emc.mongoose.api.metrics.logging.MetricsAsciiTableLogMessage.TABLE_HEADER;
-import static com.emc.mongoose.api.metrics.logging.MetricsAsciiTableLogMessage.TABLE_HEADER_PERIOD;
-import static com.emc.mongoose.api.common.Constants.K;
-import static com.emc.mongoose.api.common.Constants.MIB;
-import static com.emc.mongoose.api.common.env.DateUtil.FMT_DATE_ISO8601;
-import static com.emc.mongoose.api.common.env.DateUtil.FMT_DATE_METRICS_TABLE;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.INTERRUPTED;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.SUCC;
 
+import com.emc.mongoose.item.io.IoType;
+import com.emc.mongoose.item.io.task.IoTask;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 
@@ -34,6 +26,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.env.DateUtil.FMT_DATE_ISO8601;
+import static com.emc.mongoose.env.DateUtil.FMT_DATE_METRICS_TABLE;
+import static com.emc.mongoose.item.io.task.IoTask.Status.SUCC;
+import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER;
+import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER_PERIOD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -294,7 +292,8 @@ public class LogAnalyzer {
 			if(lastTimeStamp != null) {
 				assertEquals(
 					"Next metrics record is expected to be in " + metricsPeriodSec,
-					metricsPeriodSec, (nextDateTimeStamp.getTime() - lastTimeStamp.getTime()) / K,
+					metricsPeriodSec,
+					(nextDateTimeStamp.getTime() - lastTimeStamp.getTime()) / 1000,
 					((double) metricsPeriodSec) / 2
 				);
 			}
@@ -510,7 +509,7 @@ public class LogAnalyzer {
 	) {
 		assertEquals(ioTypeCodeExpected, Integer.parseInt(ioTraceRecord.get("IoTypeCode")));
 		final int actualStatusCode = Integer.parseInt(ioTraceRecord.get("StatusCode"));
-		if(INTERRUPTED.ordinal() == actualStatusCode) {
+		if(IoTask.Status.INTERRUPTED.ordinal() == actualStatusCode) {
 			return;
 		}
 		assertEquals(
@@ -579,7 +578,7 @@ public class LogAnalyzer {
 			nextDateTimeStamp = FMT_DATE_ISO8601.parse(m.group("dateTime"));
 			if(lastTimeStamp != null) {
 				assertEquals(
-					metricsPeriodSec, (nextDateTimeStamp.getTime() - lastTimeStamp.getTime()) / K,
+					metricsPeriodSec, (nextDateTimeStamp.getTime() - lastTimeStamp.getTime()) / 1000,
 					((double) metricsPeriodSec) / 10
 				);
 			}
