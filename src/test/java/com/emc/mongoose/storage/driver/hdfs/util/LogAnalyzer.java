@@ -44,7 +44,7 @@ public class LogAnalyzer {
 	public static List<String> getLogFileLines(final String stepId, final String fileName)
 	throws IOException {
 		final File logFile = Paths
-			.get(MongooseContainer.HOST_SHARE_PATH.toString(), "log", stepId, fileName)
+			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
 			.toFile();
 		try(final BufferedReader br = new BufferedReader(new FileReader(logFile))) {
 			return br.lines().collect(Collectors.toList());
@@ -54,7 +54,7 @@ public class LogAnalyzer {
 	public static List<String> getContainerLogFileLines(final String stepId, final String fileName)
 	throws IOException {
 		final File logFile = Paths
-			.get(MongooseContainer.HOST_SHARE_PATH.toString(), "log", stepId, fileName)
+			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
 			.toFile();
 		try(final BufferedReader br = new BufferedReader(new FileReader(logFile))) {
 			return br.lines().collect(Collectors.toList());
@@ -103,13 +103,13 @@ public class LogAnalyzer {
 
 	private static File getLogFile(final String stepId, final String fileName) {
 		return Paths
-			.get(MongooseContainer.HOST_SHARE_PATH.toString(), "log", stepId, fileName)
+			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
 			.toFile();
 	}
 
 	private static File getContainerLogFile(final String stepId, final String fileName) {
 		return Paths
-			.get(MongooseContainer.HOST_SHARE_PATH.toString(), "log", stepId, fileName)
+			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
 			.toFile();
 	}
 

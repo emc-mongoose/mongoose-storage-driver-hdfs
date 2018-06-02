@@ -35,22 +35,9 @@ jobs:
       - docker login -u $DOCKER_USER -p $DOCKER_PASS
       - export REPO=emcmongoose/mongoose-storage-driver-hdfs
       - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile -t $REPO:$COMMIT .
-      - docker tag $REPO:$COMMIT $REPO:$TAG
-      - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
-      - docker push $REPO
-      - export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
+      - docker build --build-arg MONGOOSE_VERSION=4.0.0 -f docker/Dockerfile -t $REPO:$COMMIT .
       - docker tag $REPO:$COMMIT $REPO:$TAG
       - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
       - docker push $REPO
 
-    - stage: "Deploy to GitHub releases"
-      deploy:
-        skip_cleanup: true
-        provider: releases
-        api_key:
-          secure: LB0I2j3QWoR65Ty15ib8XV5ozIot72pD+6Mx1rcFht2VRajJPwqzOioH//pXHGKXgXNSaefqYqk19IrOFqrG3gykXsJO3AInVjtnt+g9vuPhjA+bXQxbfp8sTc99u6X7NalZB33SZy+O9N3S2tQ0pRtrsNfXKOrBPsro6LGDcZOYGHL2c2KMkFUF3LjPi1wSvea03DqIBCdvUhmD86krKJsNpK5lklz5HCADLfzp5VAERp1gAEYDvTXkn7wJiZhefbROPV0IoIBXjdKMTth3dEMsVObtD4eMXC3uiC90Jl+z/TzMxZ7H1vIobZtuNn6dZB32kMJRwLDK2DZ8kZiBkA7qXXHhRN2R/r84LUiGdp27QkV/ECiAMJjAae0zLaAp2rW1PA4OTFrVLuDcRBZIugLmAavZDD+k1rrF5ueFhSyw5w7mtFRLB2RMojwQ6U3i7Qf1NL37EHCTgGR5R9hzot+WQhNBqwrOUnkIlYDqNv20dfLEQyTVyustTeh7hvSrp2JDUIimAgojXW4X36R1zVtVH4fhKbay6dLncS9N+3bB1EpES+a0d4LTCYbuJwkg6VQYi9kfLBHMSLFQgMqKAIJrq9nkYQTmW5b423nyN7H85g5IQ8YGVeK6yHkNWXUMG6v9233aLG1BeB04X5ftzWo/7G3ra9ACvJ4Bvrg2Zo8=
-        file: "./build/libs/mongoose-storage-driver-hdfs.jar"
-        on:
-          tags: true
+    # TODO: add the stage to deploy the jar to maven central repo

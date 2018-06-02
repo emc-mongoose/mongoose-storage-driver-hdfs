@@ -45,13 +45,13 @@ and uses the following libraries:
 
 # Usage
 
-Latest stable pre-built jar file is available at:
-https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/latest/mongoose-storage-driver-hdfs.jar
-This jar file may be downloaded manually and placed into the `<USER_HOME_DIR>/.mongoose/<VERSION>/ext`
+Get the latest pre-built jar file which is available at:
+http://repo.maven.apache.org/maven2/com/github/emc-mongoose/mongoose-storage-driver-hdfs/
+The jar file may be downloaded manually and placed into the `<USER_HOME_DIR>/.mongoose/<VERSION>/ext`
 directory of Mongoose to be automatically loaded into the runtime.
 
 ```bash
-java -jar mongoose-<VERSION>/mongoose.jar \
+java -jar mongoose-<VERSION>.jar \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
@@ -67,7 +67,6 @@ java -jar mongoose-<VERSION>/mongoose.jar \
 docker run \
     --network host \
     emcmongoose/mongoose-storage-driver-hdfs \
-    --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
     --storage-auth-uid=<USER_ID> \
@@ -94,7 +93,6 @@ docker run \
     emcmongoose/mongoose-storage-driver-hdfs \
     --load-step-distributed \
     --load-step-node-addrs=<ADDR1,ADDR2,...> \
-    --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
     --storage-auth-uid=<USER_ID> \
@@ -151,7 +149,7 @@ either use the Docker image with HDFS support.
 
 5. Run some Mongoose test, for example:
 ```bash
-java -jar mongoose-<VER>/mongoose.jar \
+java -jar mongoose-<VERSION>.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \

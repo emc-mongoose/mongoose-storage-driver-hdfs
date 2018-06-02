@@ -78,7 +78,7 @@ extends NioStorageDriverBase<I, O> {
 
 		this.uriSchema = uriSchema;
 		hadoopConfig = new Configuration();
-		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+		hadoopConfig.setClassLoader(getClass().getClassLoader());
 		defaultFsPerm = FsPermission
 			.getDefault()
 			.applyUMask(FsPermission.getUMask(hadoopConfig));
@@ -118,7 +118,7 @@ extends NioStorageDriverBase<I, O> {
 			final String uid = credential == null ? null : credential.getUid();
 			final URI endpointUri = new URI(uriSchema, uid, addr, port, "/", null, null);
 			// set the temporary thread's context classloader
-			//Thread.currentThread().setContextClassLoader(Extensions.CLS_LOADER);
+			Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 			return FileSystem.get(endpointUri, hadoopConfig);
 		} catch(final URISyntaxException | IOException e) {
 			throw new RuntimeException(e);

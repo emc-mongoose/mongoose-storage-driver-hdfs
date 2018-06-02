@@ -1,13 +1,14 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
+import com.emc.mongoose.item.io.IoType;
 import com.github.akurilov.commons.system.SizeInBytes;
 
-import com.emc.mongoose.api.model.io.IoType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-import static com.emc.mongoose.api.common.Constants.MIB;
+
+import static com.emc.mongoose.Constants.MIB;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
 
@@ -68,10 +69,10 @@ public class CircularAppendTest {
 		}
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
-		args.add("--test-step-id=" + STEP_ID);
-		args.add("--test-scenario-file=" + hostScenarioPath);
-		args.add("--load-limit-concurrency=" + CONCURRENCY);
 		args.add("--item-output-path=" + ITEM_OUTPUT_PATH);
+		args.add("--load-step-id=" + STEP_ID);
+		args.add("--load-step-limit-concurrency=" + CONCURRENCY);
+		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("BASE_ITEMS_COUNT", Integer.toString(BASE_ITEMS_COUNT));
 		EnvUtil.set("APPEND_COUNT", Integer.toString(APPEND_COUNT));
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());

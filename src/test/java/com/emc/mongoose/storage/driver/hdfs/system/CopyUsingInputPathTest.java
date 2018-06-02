@@ -1,12 +1,12 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.emc.mongoose.api.common.env.Extensions;
-import com.emc.mongoose.api.model.io.IoType;
+import com.emc.mongoose.item.io.IoType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-import static com.emc.mongoose.api.common.Constants.MIB;
+
+import static com.emc.mongoose.Constants.MIB;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
 
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -65,9 +65,9 @@ public class CopyUsingInputPathTest {
 		}
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
-		args.add("--test-step-id=" + STEP_ID);
-		args.add("--test-scenario-file=" + hostScenarioPath);
-		args.add("--load-limit-concurrency=" + CONCURRENCY);
+		args.add("--load-step-id=" + STEP_ID);
+		args.add("--load-step-limit-concurrency=" + CONCURRENCY);
+		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("TEST_STEP_LIMIT_COUNT", Integer.toString(TEST_STEP_LIMIT_COUNT));
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
 		EnvUtil.set("ITEM_PATH_0", ITEM_PATH_0);
@@ -97,7 +97,7 @@ public class CopyUsingInputPathTest {
 		final LongAdder ioTraceRecCount = new LongAdder();
 		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
-		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);
 		final Consumer<CSVRecord> ioTraceRecTestFunc = ioTraceRecord -> {
 			final String nextItemPath = ioTraceRecord.get("ItemPath");

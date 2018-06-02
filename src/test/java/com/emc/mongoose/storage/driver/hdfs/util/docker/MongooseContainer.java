@@ -1,5 +1,12 @@
 package com.emc.mongoose.storage.driver.hdfs.util.docker;
 
+import com.emc.mongoose.config.BundledDefaultsProvider;
+import static com.emc.mongoose.Constants.APP_NAME;
+import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
+
+import com.github.akurilov.confuse.Config;
+import com.github.akurilov.confuse.SchemaProvider;
+
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -17,10 +24,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -28,15 +35,30 @@ public class MongooseContainer
 implements Runnable, Closeable {
 
 	private static final Logger LOG = Logger.getLogger(MongooseContainer.class.getSimpleName());
-	private static final String BASE_DIR = Paths.get(".").toAbsolutePath().normalize().toString();
+	private static final String BASE_DIR = new File("").getAbsolutePath();
+	private static final String APP_VERSION;
+	static {
+		final Config bundledDefaults;
+		try {
+			final Map<String, Object> schema = SchemaProvider.resolveAndReduce(
+				APP_NAME, Thread.currentThread().getContextClassLoader()
+			);
+			bundledDefaults = new BundledDefaultsProvider().config(ARG_PATH_SEP, schema);
+		} catch(final Exception e) {
+			throw new IllegalStateException(
+				"Failed to load the bundled default config from the resources", e
+			);
+		}
+		APP_VERSION = bundledDefaults.stringVal("run-version");
+	}
 
-	public static final String CONTAINER_SHARE_PATH = "/opt/mongoose/share";
+	public static final String CONTAINER_SHARE_PATH = "/root/.mongoose/" + APP_VERSION + "/share";
 	public static final Path HOST_SHARE_PATH = Paths.get(BASE_DIR, "share");
 	static {
 		HOST_SHARE_PATH.toFile().mkdir();
 	}
-	private static final String CONTAINER_LOG_PATH = "/opt/mongoose/log";
-	private static final Path HOST_LOG_PATH = Paths.get(BASE_DIR, "share", "log");
+	private static final String CONTAINER_LOG_PATH = "/root/.mongoose/" + APP_VERSION + "/log";
+	public static final Path HOST_LOG_PATH = Paths.get(BASE_DIR, "share", "log");
 	static {
 		HOST_LOG_PATH.toFile().mkdir();
 	}
@@ -75,7 +97,7 @@ implements Runnable, Closeable {
 		this.dockerClient = DockerClientBuilder.getInstance().build();
 
 		final File dockerBuildFile = Paths
-			.get(BASE_DIR.toString(), "docker", "Dockerfile")
+			.get(BASE_DIR, "docker", "Dockerfile")
 			.toFile();
 		LOG.info("Build mongoose image w/ HDFS support using the dockerfile " + dockerBuildFile);
 		final BuildImageResultCallback buildImageResultCallback = new BuildImageResultCallback();
@@ -83,51 +105,34 @@ implements Runnable, Closeable {
 			.buildImageCmd()
 			.withBaseDirectory(new File(BASE_DIR))
 			.withDockerfile(dockerBuildFile)
-			.withBuildArg("MONGOOSE_VERSION", "integration")
+			.withBuildArg("MONGOOSE_VERSION", APP_VERSION)
 			.withPull(true)
 			.withTags(Collections.singleton("emcmongoose/mongoose-storage-driver-hdfs:testing"))
 			.exec(buildImageResultCallback);
 		final String testingImageId = buildImageResultCallback.awaitImageId();
 		LOG.info("Build mongoose testing image id: " + testingImageId);
 
-		this.configArgs.add("--storage-driver-type=hdfs");
 		this.configArgs.add("--output-metrics-trace-persist=true");
 		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
 		for(final String configArg: configArgs) {
-			if(configArg.startsWith("--test-scenario-file=")) {
-				final String scenarioPathStr = configArg.substring(
-					"--test-scenario-file=".length()
-				);
-				if(scenarioPathStr.startsWith(BASE_DIR)) {
+			if(configArg.startsWith("--run-scenario=")) {
+				final String scenarioPathStr = configArg.substring("--run-scenario=".length());
+				if(scenarioPathStr.startsWith(HOST_SHARE_PATH.toString())) {
 					this.configArgs.add(
-						"--test-scenario-file=/opt/mongoose"
-							+ scenarioPathStr.substring(BASE_DIR.length())
+						"--run-scenario=" + CONTAINER_SHARE_PATH
+							+ scenarioPathStr.substring(HOST_SHARE_PATH.toString().length())
 					);
 				} else {
-					this.configArgs.add("--test-scenario-file=/opt/mongoose/" + scenarioPathStr);
+					this.configArgs.add(
+						"--run-scenario=" + CONTAINER_SHARE_PATH + scenarioPathStr
+					);
 				}
 			} else {
 				this.configArgs.add(configArg);
 			}
 		}
 
-		final List<String> cmd = new ArrayList<>();
-		cmd.add("-Xms1g");
-		cmd.add("-Xmx1g");
-		cmd.add("-XX:MaxDirectMemorySize=1g");
-		cmd.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
-		cmd.add("-Dcom.sun.management.jmxremote=true");
-		cmd.add("-Dcom.sun.management.jmxremote.port=9010");
-		cmd.add("-Dcom.sun.management.jmxremote.rmi.port=9010");
-		cmd.add("-Dcom.sun.management.jmxremote.local.only=false");
-		cmd.add("-Dcom.sun.management.jmxremote.authenticate=false");
-		cmd.add("-Dcom.sun.management.jmxremote.ssl=false");
-		cmd.add("-jar");
-		cmd.add("/opt/mongoose/mongoose.jar");
-		cmd.addAll(this.configArgs);
-		final StringJoiner cmdLine = new StringJoiner(" ");
-		cmd.forEach(cmdLine::add);
-		LOG.info("Mongoose test container arguments: " + cmdLine.toString());
+		LOG.info("Mongoose test container arguments: " + Arrays.toString(configArgs.toArray()));
 
 		final Volume volumeShare = new Volume(CONTAINER_SHARE_PATH);
 		final Volume volumeLog = new Volume(CONTAINER_LOG_PATH);
@@ -156,9 +161,9 @@ implements Runnable, Closeable {
 			.withBinds(binds)
 			.withAttachStdout(true)
 			.withAttachStderr(true)
+			.withEntrypoint("/opt/mongoose/entrypoint-storage-driver-hdfs.sh")
 			.withEnv(env)
-			.withEntrypoint("mongoose")
-			.withCmd(cmd)
+			.withCmd(this.configArgs)
 			.exec();
 
 		testContainerId = container.getId();

@@ -30,7 +30,7 @@ implements Closeable {
 			DOCKER_CLIENT
 				.pullImageCmd(IMAGE_NAME)
 				.exec(new PullImageResultCallback())
-				.awaitSuccess();
+				.awaitCompletion();
 		}
 		final CreateContainerResponse container = DOCKER_CLIENT
 			.createContainerCmd(IMAGE_NAME)

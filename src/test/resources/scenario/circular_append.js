@@ -28,6 +28,9 @@ Load
 					},
 					"summary": {
 						"persist": false
+					},
+					"trace": {
+						"persist": false
 					}
 				}
 			}

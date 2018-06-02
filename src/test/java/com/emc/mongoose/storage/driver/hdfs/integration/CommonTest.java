@@ -1,27 +1,22 @@
 package com.emc.mongoose.storage.driver.hdfs.integration;
 
-import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
-import com.emc.mongoose.api.model.data.DataInput;
-import com.emc.mongoose.api.model.item.BasicDataItemFactory;
-import com.emc.mongoose.api.model.item.DataItem;
-import com.emc.mongoose.api.model.item.Item;
-import com.emc.mongoose.api.model.item.ItemFactory;
-import com.emc.mongoose.api.model.storage.Credential;
+import com.emc.mongoose.data.DataInput;
+import com.emc.mongoose.env.Extension;
+import com.emc.mongoose.exception.OmgShootMyFootException;
+import com.emc.mongoose.item.BasicDataItemFactory;
+import com.emc.mongoose.item.DataItem;
+import com.emc.mongoose.item.Item;
+import com.emc.mongoose.item.ItemFactory;
+import com.emc.mongoose.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
-import com.emc.mongoose.ui.config.Config;
-import com.emc.mongoose.ui.config.load.LoadConfig;
-import com.emc.mongoose.ui.config.load.batch.BatchConfig;
-import com.emc.mongoose.ui.config.load.rate.LimitConfig;
-import com.emc.mongoose.ui.config.storage.StorageConfig;
-import com.emc.mongoose.ui.config.storage.auth.AuthConfig;
-import com.emc.mongoose.ui.config.storage.driver.DriverConfig;
-import com.emc.mongoose.ui.config.storage.driver.queue.QueueConfig;
-import com.emc.mongoose.ui.config.storage.net.NetConfig;
-import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
 
+import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
 
+import com.github.akurilov.confuse.Config;
+import com.github.akurilov.confuse.SchemaProvider;
+import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -33,11 +28,16 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.emc.mongoose.Constants.APP_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CommonTest
 extends HdfsStorageDriver {
@@ -45,7 +45,7 @@ extends HdfsStorageDriver {
 	private static final DataInput DATA_INPUT;
 	static {
 		try {
-			DATA_INPUT = DataInput.getInstance(null, "7a42d9c483244167", new SizeInBytes("4MB"), 16);
+			DATA_INPUT = DataInput.instance(null, "7a42d9c483244167", new SizeInBytes("4MB"), 16);
 		} catch(final IOException e) {
 			throw new AssertionError(e);
 		}
@@ -56,46 +56,51 @@ extends HdfsStorageDriver {
 
 	private static Config getConfig() {
 		try {
-			final Config config = new Config();
-			final LoadConfig loadConfig = new LoadConfig();
-			config.setLoadConfig(loadConfig);
-			final BatchConfig batchConfig = new BatchConfig();
-			loadConfig.setBatchConfig(batchConfig);
-			batchConfig.setSize(4096);
-			final LimitConfig limitConfig = new LimitConfig();
-			loadConfig.setLimitConfig(limitConfig);
-			limitConfig.setConcurrency(0);
-			final StorageConfig storageConfig = new StorageConfig();
-			config.setStorageConfig(storageConfig);
-			final NetConfig netConfig = new NetConfig();
-			storageConfig.setNetConfig(netConfig);
-			netConfig.setReuseAddr(true);
-			netConfig.setBindBacklogSize(0);
-			netConfig.setKeepAlive(true);
-			netConfig.setRcvBuf(new SizeInBytes(0));
-			netConfig.setSndBuf(new SizeInBytes(0));
-			netConfig.setSsl(false);
-			netConfig.setTcpNoDelay(false);
-			netConfig.setInterestOpQueued(false);
-			netConfig.setLinger(0);
-			netConfig.setTimeoutMilliSec(0);
-			netConfig.setIoRatio(50);
-			final NodeConfig nodeConfig = new NodeConfig();
-			netConfig.setNodeConfig(nodeConfig);
-			nodeConfig.setAddrs(Collections.singletonList("127.0.0.1"));
-			nodeConfig.setPort(HdfsNodeContainer.PORT);
-			nodeConfig.setConnAttemptsLimit(0);
-			final AuthConfig authConfig = new AuthConfig();
-			storageConfig.setAuthConfig(authConfig);
-			authConfig.setUid(CREDENTIAL.getUid());
-			authConfig.setToken(null);
-			authConfig.setSecret(CREDENTIAL.getSecret());
-			final DriverConfig driverConfig = new DriverConfig();
-			storageConfig.setDriverConfig(driverConfig);
-			final QueueConfig queueConfig = new QueueConfig();
-			driverConfig.setQueueConfig(queueConfig);
-			queueConfig.setInput(1000000);
-			queueConfig.setOutput(1000000);
+			final List<Map<String, Object>> configSchemas = Extension
+				.load(Thread.currentThread().getContextClassLoader())
+				.stream()
+				.map(Extension::schemaProvider)
+				.filter(Objects::nonNull)
+				.map(
+					schemaProvider -> {
+						try {
+							return schemaProvider.schema();
+						} catch(final Exception e) {
+							fail(e.getMessage());
+						}
+						return null;
+					}
+				)
+				.filter(Objects::nonNull)
+				.collect(Collectors.toList());
+			SchemaProvider
+				.resolve(APP_NAME, Thread.currentThread().getContextClassLoader())
+				.stream()
+				.findFirst()
+				.ifPresent(configSchemas::add);
+			final Map<String, Object> configSchema = TreeUtil.reduceForest(configSchemas);
+			final Config config = new BasicConfig("-", configSchema);
+			config.val("load-batch-size", 4096);
+			config.val("load-step-limit-concurrency", 0);
+			config.val("storage-net-reuseAddr", true);
+			config.val("storage-net-bindBacklogSize", 0);
+			config.val("storage-net-keepAlive", true);
+			config.val("storage-net-rcvBuf", 0);
+			config.val("storage-net-sndBuf", 0);
+			config.val("storage-net-ssl", false);
+			config.val("storage-net-tcpNoDelay", false);
+			config.val("storage-net-interestOpQueued", false);
+			config.val("storage-net-linger", 0);
+			config.val("storage-net-timeoutMilliSec", 0);
+			config.val("storage-net-node-addrs", Collections.singletonList("127.0.0.1"));
+			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
+			config.val("storage-net-node-connAttemptsLimit", 0);
+			config.val("storage-auth-uid", CREDENTIAL.getUid());
+			config.val("storage-auth-token", null);
+			config.val("storage-auth-secret", CREDENTIAL.getSecret());
+			config.val("storage-driver-threads", 0);
+			config.val("storage-driver-queue-input", 1_000_000);
+			config.val("storage-driver-queue-output", 1_000_000);
 			return config;
 		} catch(final Throwable cause) {
 			throw new RuntimeException(cause);
@@ -110,8 +115,8 @@ extends HdfsStorageDriver {
 	private CommonTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"hdfs", "test-common-hdfs-driver", DATA_INPUT, config.getLoadConfig(),
-			config.getStorageConfig(), false
+			"hdfs", "test-common-hdfs-driver", DATA_INPUT, config.configVal("load"),
+			config.configVal("storage"), false
 		);
 	}
 
