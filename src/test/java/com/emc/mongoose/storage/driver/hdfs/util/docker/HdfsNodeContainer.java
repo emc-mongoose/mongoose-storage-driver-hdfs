@@ -2,8 +2,6 @@ package com.emc.mongoose.storage.driver.hdfs.util.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectImageCmd;
-import com.github.dockerjava.api.command.InspectImageResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
@@ -25,12 +23,12 @@ implements Closeable {
 	public HdfsNodeContainer()
 	throws Exception {
 		try {
-			final InspectImageResponse result = DOCKER_CLIENT.inspectImageCmd(IMAGE_NAME).exec();
+			DOCKER_CLIENT.inspectImageCmd(IMAGE_NAME).exec();
 		} catch(final NotFoundException e) {
 			DOCKER_CLIENT
 				.pullImageCmd(IMAGE_NAME)
 				.exec(new PullImageResultCallback())
-				.awaitSuccess();
+				.awaitCompletion();
 		}
 		final CreateContainerResponse container = DOCKER_CLIENT
 			.createContainerCmd(IMAGE_NAME)

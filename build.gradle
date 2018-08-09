@@ -5,7 +5,7 @@ apply plugin: "maven"
 apply plugin: "signing"
 
 group = "com.github.emc-mongoose"
-version = "0.1.1"
+version = "0.1.2"
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = JavaVersion.VERSION_1_8
@@ -26,12 +26,12 @@ repositories {
 ext {
 
 	depVersion = [
-		commonsJava: "[1.4.1,)",
+		commonsJava: "1.4.1",
 		disruptor: "3.3.4",
 		dockerJava: "[3.0.13,)",
 		hadoop: "2.9.0",
 		log4j: "2.8.2",
-		mongoose: "[3.,4.)",
+		mongoose: "3.6.2",
 	]
 
 	setClassPath = {
@@ -41,6 +41,12 @@ ext {
 				.join(" "),
 		]
 		.join(" ")
+	}
+}
+
+configurations.all {
+	resolutionStrategy {
+		force "com.github.akurilov:java-commons:${depVersion.commonsJava}"
 	}
 }
 
