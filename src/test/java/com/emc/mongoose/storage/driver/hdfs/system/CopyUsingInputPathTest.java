@@ -7,7 +7,6 @@ import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import static com.emc.mongoose.api.common.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver.DEFAULT_URI_SCHEMA;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
 
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -96,9 +95,7 @@ public class CopyUsingInputPathTest {
 	public void testIoTraceRecords()
 	throws Exception {
 		final LongAdder ioTraceRecCount = new LongAdder();
-		final URI endpointUri = new URI(
-			DEFAULT_URI_SCHEMA, null, "127.0.0.1", 9000, "/", null, null
-		);
+		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
 		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);

@@ -92,8 +92,8 @@ extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 	private PathOperationsTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"test-path-hdfs-driver", null, config.getLoadConfig(), config.getStorageConfig(),
-			false
+			"hdfs", "test-path-hdfs-driver", null, config.getLoadConfig(),
+			config.getStorageConfig(), false
 		);
 	}
 
