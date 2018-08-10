@@ -35,12 +35,12 @@ jobs:
       - docker login -u $DOCKER_USER -p $DOCKER_PASS
       - export REPO=emcmongoose/mongoose-storage-driver-hdfs
       - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile -t $REPO:$COMMIT .
+      - docker build --build-arg MONGOOSE_VERSION=latest -f docker/Dockerfile -t $REPO:$COMMIT .
       - docker tag $REPO:$COMMIT $REPO:$TAG
       - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
       - docker push $REPO
       - export REPO=emcmongoose/mongoose-storage-driver-service-hdfs
-      - docker build --build-arg MONGOOSE_VERSION=integration -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
+      - docker build --build-arg MONGOOSE_VERSION=latest -f docker/Dockerfile.storage-driver-service -t $REPO:$COMMIT .
       - docker tag $REPO:$COMMIT $REPO:$TAG
       - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
       - docker push $REPO
