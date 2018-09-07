@@ -1,28 +1,18 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.emc.mongoose.item.io.IoType;
+import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-
-import static com.emc.mongoose.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
-
 import com.github.akurilov.commons.system.SizeInBytes;
-
 import org.apache.commons.csv.CSVRecord;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
+
+import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CopyUsingInputPathTest {
 
@@ -110,7 +106,7 @@ public class CopyUsingInputPathTest {
 				);
 				assertEquals(srcFileStatus.getLen(), dstFileStatus.getLen());
 				LogAnalyzer.testIoTraceRecord(
-					ioTraceRecord, IoType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
+					ioTraceRecord, OpType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
 				);
 				ioTraceRecCount.increment();
 			} catch(final IOException e) {
@@ -134,7 +130,7 @@ public class CopyUsingInputPathTest {
 			totalMetricsLogRecords.size()
 		);
 		LogAnalyzer.testTotalMetricsLogRecord(
-			totalMetricsLogRecords.get(0), IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
+			totalMetricsLogRecords.get(0), OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
 		);
 	}
 
@@ -149,7 +145,7 @@ public class CopyUsingInputPathTest {
 			metricsLogRecords.size() > 0
 		);
 		LogAnalyzer.testMetricsLogRecords(
-			metricsLogRecords, IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0, 10
+			metricsLogRecords, OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0, 10
 		);
 	}
 
@@ -157,7 +153,7 @@ public class CopyUsingInputPathTest {
 	public void testSingleMetricsStdout()
 	throws Exception {
 		LogAnalyzer.testSingleMetricsStdout(
-			STD_OUTPUT.replaceAll("[\r\n]+", " "), IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
+			STD_OUTPUT.replaceAll("[\r\n]+", " "), OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
 		);
 	}
 
@@ -165,7 +161,7 @@ public class CopyUsingInputPathTest {
 	public void testFinalMetricsTableRowStdout()
 	throws Exception {
 		LogAnalyzer.testFinalMetricsTableRowStdout(
-			STD_OUTPUT, STEP_ID, IoType.CREATE, 1, CONCURRENCY, 0, 0, ITEM_DATA_SIZE
+			STD_OUTPUT, STEP_ID, OpType.CREATE, 1, CONCURRENCY, 0, 0, ITEM_DATA_SIZE
 		);
 	}
 }

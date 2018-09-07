@@ -1,24 +1,15 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.emc.mongoose.item.io.IoType;
+import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-
-import static com.emc.mongoose.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
-
 import com.github.akurilov.commons.system.SizeInBytes;
-
 import org.apache.commons.csv.CSVRecord;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -30,6 +21,12 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ReadUsingVariablePathTest {
 
@@ -101,7 +98,7 @@ public class ReadUsingVariablePathTest {
 		// ${FILE_OUTPUT_PATH}/b/fedcba9876543210
 		final Pattern subPathPtrn = Pattern.compile("(/[0-9a-f]){1,2}/[0-9a-f]{16}");
 		final Consumer<CSVRecord> ioTraceReqTestFunc = ioTraceRec -> {
-			LogAnalyzer.testIoTraceRecord(ioTraceRec, IoType.READ.ordinal(), ITEM_DATA_SIZE);
+			LogAnalyzer.testIoTraceRecord(ioTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
 			String nextFilePath = ioTraceRec.get("ItemPath");
 			assertTrue(nextFilePath.startsWith(ITEM_OUTPUT_PATH));
 			nextFilePath = nextFilePath.substring(baseOutputPathLen);
@@ -120,7 +117,7 @@ public class ReadUsingVariablePathTest {
 	public void testMetricsLogRecords()
 	throws Exception {
 		LogAnalyzer.testMetricsLogRecords(
-			LogAnalyzer.getMetricsLogRecords(STEP_ID), IoType.READ, CONCURRENCY, 1, ITEM_DATA_SIZE,
+			LogAnalyzer.getMetricsLogRecords(STEP_ID), OpType.READ, CONCURRENCY, 1, ITEM_DATA_SIZE,
 			STEP_LIMIT_COUNT, 0, 10
 		);
 	}
@@ -129,7 +126,7 @@ public class ReadUsingVariablePathTest {
 	public void testTotalMetricsLogRecord()
 	throws Exception {
 		LogAnalyzer.testTotalMetricsLogRecord(
-			LogAnalyzer.getMetricsTotalLogRecords(STEP_ID).get(0), IoType.READ, CONCURRENCY, 1,
+			LogAnalyzer.getMetricsTotalLogRecords(STEP_ID).get(0), OpType.READ, CONCURRENCY, 1,
 			ITEM_DATA_SIZE, STEP_LIMIT_COUNT, 0
 		);
 	}
@@ -138,7 +135,7 @@ public class ReadUsingVariablePathTest {
 	public void testMetricsStdout()
 	throws Exception {
 		LogAnalyzer.testSingleMetricsStdout(
-			STD_OUTPUT.replaceAll("[\r\n]+", " "), IoType.READ, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
+			STD_OUTPUT.replaceAll("[\r\n]+", " "), OpType.READ, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
 		);
 	}
 
@@ -146,7 +143,7 @@ public class ReadUsingVariablePathTest {
 	public void testFinalMetricsTableRowStdout()
 	throws Exception {
 		LogAnalyzer.testFinalMetricsTableRowStdout(
-			STD_OUTPUT, STEP_ID, IoType.CREATE, 1, CONCURRENCY, STEP_LIMIT_COUNT, 0, ITEM_DATA_SIZE
+			STD_OUTPUT, STEP_ID, OpType.CREATE, 1, CONCURRENCY, STEP_LIMIT_COUNT, 0, ITEM_DATA_SIZE
 		);
 	}
 }

@@ -3,24 +3,21 @@ package com.emc.mongoose.storage.driver.hdfs.integration;
 import com.emc.mongoose.data.DataInput;
 import com.emc.mongoose.env.Extension;
 import com.emc.mongoose.exception.OmgShootMyFootException;
-import com.emc.mongoose.item.BasicDataItemFactory;
 import com.emc.mongoose.item.DataItem;
+import com.emc.mongoose.item.DataItemFactoryImpl;
 import com.emc.mongoose.item.Item;
 import com.emc.mongoose.item.ItemFactory;
 import com.emc.mongoose.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
-
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
-
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
 import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -115,8 +112,8 @@ extends HdfsStorageDriver {
 	private CommonTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"hdfs", "test-common-hdfs-driver", DATA_INPUT, config.configVal("load"),
-			config.configVal("storage"), false
+			"hdfs", "test-common-hdfs-driver", DATA_INPUT,
+			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
 		);
 	}
 
@@ -181,7 +178,7 @@ extends HdfsStorageDriver {
 			)
 			.count();
 
-		final ItemFactory<DataItem> dataItemFactory = new BasicDataItemFactory<>();
+		final ItemFactory<DataItem> dataItemFactory = new DataItemFactoryImpl<>();
 		final List<DataItem> listedItems = list(
 			dataItemFactory, parentDirPath, null, 10, null, fileCount
 		);
@@ -197,7 +194,7 @@ extends HdfsStorageDriver {
 					}
 				}
 			)
-			.map(Item::getName)
+			.map(Item::name)
 			.peek(
 				dataItemName ->
 					assertTrue(

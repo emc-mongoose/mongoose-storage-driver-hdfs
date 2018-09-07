@@ -4,13 +4,11 @@ import com.emc.mongoose.env.Extension;
 import com.emc.mongoose.exception.OmgShootMyFootException;
 import com.emc.mongoose.item.ItemType;
 import com.emc.mongoose.item.PathItem;
-import com.emc.mongoose.item.io.task.path.PathIoTask;
+import com.emc.mongoose.item.op.path.PathOperation;
 import com.emc.mongoose.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
-
 import com.github.akurilov.commons.collection.TreeUtil;
-
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
 import com.github.akurilov.confuse.impl.BasicConfig;
@@ -28,7 +26,7 @@ import static com.emc.mongoose.Constants.APP_NAME;
 import static org.junit.Assert.fail;
 
 public class PathOperationsTest
-extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
+extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
 	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
@@ -95,8 +93,8 @@ extends HdfsStorageDriver<PathItem, PathIoTask<PathItem>> {
 	private PathOperationsTest(final Config config)
 	throws OmgShootMyFootException {
 		super(
-			"hdfs", "test-path-hdfs-driver", null, config.configVal("load"),
-			config.configVal("storage"), false
+			"hdfs", "test-path-hdfs-driver", null,
+			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
 		);
 	}
 

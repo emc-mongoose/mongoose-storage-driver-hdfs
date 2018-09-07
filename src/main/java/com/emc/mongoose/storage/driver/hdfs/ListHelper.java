@@ -30,7 +30,7 @@ public interface ListHelper {
 			lastPrevItemName = null;
 			lastPrevItemNameFound = true;
 		} else {
-			lastPrevItemName = lastPrevItem.getName();
+			lastPrevItemName = lastPrevItem.name();
 			lastPrevItemNameFound = false;
 		}
 
