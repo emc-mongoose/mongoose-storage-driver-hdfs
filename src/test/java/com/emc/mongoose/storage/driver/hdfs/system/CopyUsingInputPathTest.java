@@ -62,7 +62,7 @@ public class CopyUsingInputPathTest {
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
 		args.add("--load-step-id=" + STEP_ID);
-		args.add("--load-step-limit-concurrency=" + CONCURRENCY);
+		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("TEST_STEP_LIMIT_COUNT", Integer.toString(TEST_STEP_LIMIT_COUNT));
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());

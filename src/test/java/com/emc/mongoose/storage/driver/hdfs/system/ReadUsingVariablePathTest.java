@@ -64,7 +64,7 @@ public class ReadUsingVariablePathTest {
 		args.add("--run-scenario=" + hostScenarioPath);
 		args.add("--item-naming-radix=16");
 		args.add("--item-naming-length=16");
-		args.add("--load-step-limit-concurrency=" + CONCURRENCY);
+		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		EnvUtil.set("ITEM_LIST_FILE", ITEM_LIST_FILE);
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
 		EnvUtil.set("ITEM_OUTPUT_PATH", ITEM_OUTPUT_PATH);

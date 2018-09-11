@@ -64,7 +64,7 @@ public class CircularAppendTest {
 		final List<String> args = new ArrayList<>();
 		args.add("--item-output-path=" + ITEM_OUTPUT_PATH);
 		args.add("--load-step-id=" + STEP_ID);
-		args.add("--load-step-limit-concurrency=" + CONCURRENCY);
+		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("BASE_ITEMS_COUNT", Integer.toString(BASE_ITEMS_COUNT));
 		EnvUtil.set("APPEND_COUNT", Integer.toString(APPEND_COUNT));
