@@ -1,12 +1,8 @@
 package com.emc.mongoose.storage.driver.hdfs.util.docker;
 
 import com.emc.mongoose.config.BundledDefaultsProvider;
-import static com.emc.mongoose.Constants.APP_NAME;
-import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
-
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
-
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -31,6 +27,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import static com.emc.mongoose.Constants.APP_NAME;
+import static com.emc.mongoose.Constants.USER_HOME;
+import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
+
 public class MongooseContainer
 implements Runnable, Closeable {
 
@@ -51,14 +51,15 @@ implements Runnable, Closeable {
 		}
 		APP_VERSION = bundledDefaults.stringVal("run-version");
 	}
+	private static final String MONGOOSE_DIR = Paths.get(USER_HOME, "." + APP_NAME, APP_VERSION).toString();
 
 	public static final String CONTAINER_SHARE_PATH = "/root/.mongoose/" + APP_VERSION + "/share";
-	public static final Path HOST_SHARE_PATH = Paths.get(BASE_DIR, "share");
+	public static final Path HOST_SHARE_PATH = Paths.get(MONGOOSE_DIR, "share");
 	static {
 		HOST_SHARE_PATH.toFile().mkdir();
 	}
 	private static final String CONTAINER_LOG_PATH = "/root/.mongoose/" + APP_VERSION + "/log";
-	public static final Path HOST_LOG_PATH = Paths.get(BASE_DIR, "share", "log");
+	public static final Path HOST_LOG_PATH = Paths.get(MONGOOSE_DIR, "log");
 	static {
 		HOST_LOG_PATH.toFile().mkdir();
 	}
