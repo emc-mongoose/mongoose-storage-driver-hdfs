@@ -99,16 +99,16 @@ public class ReadUsingVariablePathTest {
 		// ${FILE_OUTPUT_PATH}/1/b/0123456789abcdef
 		// ${FILE_OUTPUT_PATH}/b/fedcba9876543210
 		final Pattern subPathPtrn = Pattern.compile("(/[0-9a-f]){1,2}/[0-9a-f]{16}");
-		final Consumer<CSVRecord> OpTraceReqTestFunc = OpTraceRec -> {
-			LogAnalyzer.testOpTraceRecord(OpTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
-			String nextFilePath = OpTraceRec.get("ItemPath");
+		final Consumer<CSVRecord> opTraceReqTestFunc = opTraceRec -> {
+			LogAnalyzer.testOpTraceRecord(opTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
+			String nextFilePath = opTraceRec.get(1);
 			assertTrue(nextFilePath.startsWith(ITEM_OUTPUT_PATH));
 			nextFilePath = nextFilePath.substring(baseOutputPathLen);
 			final Matcher m = subPathPtrn.matcher(nextFilePath);
 			assertTrue("\"" + nextFilePath + "\" doesn't match the pattern" , m.matches());
 			opTraceRecCount.increment();
 		};
-		LogAnalyzer.testOpTraceLogRecords(STEP_ID, OpTraceReqTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, opTraceReqTestFunc);
 		assertEquals(
 			"There should be more than 1 record in the I/O trace log file",
 			STEP_LIMIT_COUNT, opTraceRecCount.sum()
@@ -145,7 +145,7 @@ public class ReadUsingVariablePathTest {
 	public void testFinalMetricsTableRowStdout()
 	throws Exception {
 		LogAnalyzer.testFinalMetricsTableRowStdout(
-			STD_OUTPUT, STEP_ID, OpType.CREATE, 1, CONCURRENCY, STEP_LIMIT_COUNT, 0, ITEM_DATA_SIZE
+			STD_OUTPUT, STEP_ID, OpType.READ, 1, CONCURRENCY, STEP_LIMIT_COUNT, 0, ITEM_DATA_SIZE
 		);
 	}
 }

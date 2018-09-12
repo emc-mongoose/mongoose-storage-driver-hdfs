@@ -659,7 +659,7 @@ public class LogAnalyzer {
 	) throws Exception {
 
 		final Matcher m = LogPatterns.STD_OUT_METRICS_TABLE_ROW_FINAL.matcher(stdOutContent);
-		boolean rowFoundFlag = false;
+		boolean 	rowFoundFlag = false;
 		Date nextTimstamp = null;
 		int actualConcurrencyCurr = -1;
 		float actualConcurrencyLastMean = -1;
@@ -674,7 +674,7 @@ public class LogAnalyzer {
 		while(m.find()) {
 			final String actualStepNameEnding = m.group("stepName");
 			if(stepId.endsWith(actualStepNameEnding) || stepId.equals(actualStepNameEnding)) {
-				final OpType actualOpType = OpType.valueOf(m.group("OpType"));
+				final OpType actualOpType = OpType.valueOf(m.group("opType"));
 				if(actualOpType.equals(expectedOpType)) {
 					rowFoundFlag = true;
 					nextTimstamp = FMT_DATE_METRICS_TABLE.parse(m.group("timestamp"));
