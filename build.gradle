@@ -106,6 +106,8 @@ test {
 	}
 }
 
+test.dependsOn += jar
+
 // travis deploy stage runs "./gradlew check" again which is unnecessary
 check.dependsOn -= test
 
