@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 import static com.emc.mongoose.Constants.MIB;
 import static com.emc.mongoose.env.DateUtil.FMT_DATE_ISO8601;
 import static com.emc.mongoose.env.DateUtil.FMT_DATE_METRICS_TABLE;
+import static com.emc.mongoose.item.op.Operation.Status.FAIL_IO;
+import static com.emc.mongoose.item.op.Operation.Status.INTERRUPTED;
 import static com.emc.mongoose.item.op.Operation.Status.SUCC;
 import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER;
 import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER_PERIOD;
@@ -158,7 +160,7 @@ public class LogAnalyzer {
 		final File logFile, final Consumer<CSVRecord> csvRecordTestFunc
 	) throws IOException {
 		try(final BufferedReader br = new BufferedReader(new FileReader(logFile))) {
-			try(final CSVParser csvParser = CSVFormat.RFC4180.withHeader().parse(br)) {
+			try(final CSVParser csvParser = CSVFormat.RFC4180.parse(br)) {
 				csvParser.forEach(csvRecordTestFunc);
 			}
 		}
@@ -179,7 +181,7 @@ public class LogAnalyzer {
 
 	public static void testMetricsLogRecords(
 		final List<CSVRecord> metrics, final OpType expectedOpType, final int expectedConcurrency,
-		final int expectedDriverCount, final SizeInBytes expectedItemDataSize,
+		final int expectedNodeCount, final SizeInBytes expectedItemDataSize,
 		final long expectedMaxCount, final int expectedLoadJobTime, final long metricsPeriodSec
 	) throws Exception {
 		final int countRecords = metrics.size();
@@ -190,14 +192,14 @@ public class LogAnalyzer {
 		Date lastTimeStamp = null, nextDateTimeStamp;
 		String OpTypeStr;
 		int concurrencyLevel;
-		int driverCount;
+		int nodeCount;
 		int concurrencyCurr;
 		double concurrencyMean;
 		long totalBytes;
 		long prevCountSucc = Long.MIN_VALUE, countSucc;
 		long countFail;
 		long avgItemSize;
-		double jobDuration;
+		double stepDuration;
 		double prevDurationSum = Double.NaN, durationSum;
 		double tpAvg, tpLast;
 		double bwAvg, bwLast;
@@ -217,20 +219,20 @@ public class LogAnalyzer {
 				);
 			}
 			lastTimeStamp = nextDateTimeStamp;
-			OpTypeStr = nextRecord.get("TypeLoad").toUpperCase();
+			OpTypeStr = nextRecord.get("OpType").toUpperCase();
 			assertEquals(expectedOpType.name(), OpTypeStr);
 			concurrencyLevel = Integer.parseInt(nextRecord.get("Concurrency"));
 			assertEquals(
 				"Expected concurrency level: " + expectedConcurrency, expectedConcurrency,
 				concurrencyLevel
 			);
-			driverCount = Integer.parseInt(nextRecord.get("DriverCount"));
-			assertEquals("Expected driver count: " + driverCount, expectedDriverCount, driverCount);
+			nodeCount = Integer.parseInt(nextRecord.get("NodeCount"));
+			assertEquals("Expected driver count: " + nodeCount, expectedNodeCount, nodeCount);
 			concurrencyCurr = Integer.parseInt(nextRecord.get("ConcurrencyCurr"));
 			concurrencyMean = Double.parseDouble(nextRecord.get("ConcurrencyMean"));
 			if(expectedConcurrency > 0) {
-				assertTrue(concurrencyCurr <= driverCount * expectedConcurrency);
-				assertTrue(concurrencyMean <= driverCount * expectedConcurrency);
+				assertTrue(concurrencyCurr <= nodeCount * expectedConcurrency);
+				assertTrue(concurrencyMean <= nodeCount * expectedConcurrency);
 			} else {
 				assertTrue(concurrencyCurr >= 0);
 				assertTrue(concurrencyMean >= 0);
@@ -264,11 +266,11 @@ public class LogAnalyzer {
 					);
 				}
 			}
-			jobDuration = Double.parseDouble(nextRecord.get("JobDuration[s]"));
+			stepDuration = Double.parseDouble(nextRecord.get("StepDuration[s]"));
 			if(expectedLoadJobTime > 0) {
 				assertTrue(
-					"Step duration limit (" + expectedLoadJobTime + ") is broken: " + jobDuration,
-					jobDuration <= expectedLoadJobTime + 1
+					"Step duration limit (" + expectedLoadJobTime + ") is broken: " + stepDuration,
+					stepDuration <= expectedLoadJobTime + 1
 				);
 			}
 			durationSum = Double.parseDouble(nextRecord.get("DurationSum[s]"));
@@ -276,9 +278,9 @@ public class LogAnalyzer {
 				assertTrue(durationSum >= 0);
 			} else {
 				assertTrue(durationSum >= prevDurationSum);
-				if(expectedConcurrency > 0 && jobDuration > 1) {
+				if(expectedConcurrency > 0 && stepDuration > 1) {
 					final double
-						effEstimate = durationSum / (driverCount * expectedConcurrency * jobDuration);
+						effEstimate = durationSum / (nodeCount * expectedConcurrency * stepDuration);
 					assertTrue(
 						"Efficiency estimate: " + effEstimate, effEstimate <= 1 && effEstimate >= 0
 					);
@@ -320,7 +322,7 @@ public class LogAnalyzer {
 
 	public static void testTotalMetricsLogRecord(
 		final CSVRecord metrics,
-		final OpType expectedOpType, final int expectedConcurrency, final int expectedDriverCount,
+		final OpType expectedOpType, final int expectedConcurrency, final int expectedNodeCount,
 		final SizeInBytes expectedItemDataSize, final long expectedMaxCount,
 		final int expectedLoadJobTime
 	) throws Exception {
@@ -329,15 +331,15 @@ public class LogAnalyzer {
 		} catch(final ParseException e) {
 			fail(e.toString());
 		}
-		final String OpTypeStr = metrics.get("TypeLoad").toUpperCase();
+		final String OpTypeStr = metrics.get("OpType").toUpperCase();
 		assertEquals(OpTypeStr, expectedOpType.name(), OpTypeStr);
 		final int concurrencyLevel = Integer.parseInt(metrics.get("Concurrency"));
 		assertEquals(Integer.toString(concurrencyLevel), expectedConcurrency, concurrencyLevel);
-		final int driverCount = Integer.parseInt(metrics.get("DriverCount"));
-		assertEquals(Integer.toString(driverCount), expectedDriverCount, driverCount);
+		final int nodeCount = Integer.parseInt(metrics.get("NodeCount"));
+		assertEquals(Integer.toString(nodeCount), expectedNodeCount, nodeCount);
 		final double concurrencyLastMean = Double.parseDouble(metrics.get("ConcurrencyMean"));
 		if(expectedConcurrency > 0) {
-			assertTrue(concurrencyLastMean <= driverCount * expectedConcurrency);
+			assertTrue(concurrencyLastMean <= nodeCount * expectedConcurrency);
 		} else {
 			assertTrue(concurrencyLastMean >= 0);
 		}
@@ -374,20 +376,20 @@ public class LogAnalyzer {
 				);
 			}
 		}
-		final double jobDuration = Double.parseDouble(metrics.get("JobDuration[s]"));
+		final double stepDuration = Double.parseDouble(metrics.get("StepDuration[s]"));
 		if(expectedLoadJobTime > 0) {
 			assertTrue(
-				"Step duration was " + jobDuration + ", but expected not more than" +
-					expectedLoadJobTime + 5, jobDuration <= expectedLoadJobTime + 5
+				"Step duration was " + stepDuration + ", but expected not more than" +
+					expectedLoadJobTime + 5, stepDuration <= expectedLoadJobTime + 5
 			);
 		}
 		final double durationSum = Double.parseDouble(metrics.get("DurationSum[s]"));
-		final double effEstimate = durationSum / (expectedConcurrency * expectedDriverCount * jobDuration);
-		if(countSucc > 0 && expectedConcurrency > 0 && jobDuration > 1) {
+		final double effEstimate = durationSum / (expectedConcurrency * expectedNodeCount * stepDuration);
+		if(countSucc > 0 && expectedConcurrency > 0 && stepDuration > 1) {
 			assertTrue(
 				"Invalid efficiency estimate: " + effEstimate + ", summary duration: " + durationSum
 					+ ", concurrency limit: " + expectedConcurrency + ", driver count: "
-					+ driverCount + ", job duration: " + jobDuration,
+					+ nodeCount + ", job duration: " + stepDuration,
 				effEstimate <= 1 && effEstimate >= 0
 			);
 		}
@@ -424,23 +426,27 @@ public class LogAnalyzer {
 	}
 
 	public static void testOpTraceRecord(
-		final CSVRecord opTraceRecord, final int OpTypeCodeExpected, final SizeInBytes sizeExpected
+		final CSVRecord opTraceRecord, final int opTypeCodeExpected, final SizeInBytes sizeExpected
 	) {
-		assertEquals(OpTypeCodeExpected, Integer.parseInt(opTraceRecord.get(2)));
-		final int actualStatusCode = Integer.parseInt(opTraceRecord.get("StatusCode"));
-		if(Operation.Status.INTERRUPTED.ordinal() == actualStatusCode) {
+		assertEquals(opTypeCodeExpected, Integer.parseInt(opTraceRecord.get(2)));
+		final int actualStatusCode = Integer.parseInt(opTraceRecord.get(3));
+		//All FAIL_<...> statuses have .ordinal() more then FAIL_IO
+		if(actualStatusCode >= FAIL_IO.ordinal()) {
+			//"return" because sometimes default storage-mock return error (1 missing response) and Status = FAIL_<...>
+			return;
+		}
+		if(INTERRUPTED.ordinal() == actualStatusCode) {
 			return;
 		}
 		assertEquals(
-			"Actual status code is " + Operation.Status.values()[actualStatusCode],
-			SUCC.ordinal(), actualStatusCode
+			"Actual status code is " + Operation.Status.values()[actualStatusCode], SUCC.ordinal(), actualStatusCode
 		);
-		final long duration = Long.parseLong(opTraceRecord.get("Duration[us]"));
-		final String latencyStr = opTraceRecord.get("RespLatency[us]");
-		if(latencyStr != null && !latencyStr.isEmpty()) {
+		final long duration = Long.parseLong(opTraceRecord.get(5));
+		final String latencyStr = opTraceRecord.get(6);
+		if(latencyStr != null && ! latencyStr.isEmpty()) {
 			assertTrue(duration >= Long.parseLong(latencyStr));
 		}
-		final long size = Long.parseLong(opTraceRecord.get("TransferSize"));
+		final long size = Long.parseLong(opTraceRecord.get(8));
 		if(sizeExpected.getMin() < sizeExpected.getMax()) {
 			assertTrue(
 				"Expected the size " + sizeExpected.toString() + ", but got " + size,
@@ -471,19 +477,19 @@ public class LogAnalyzer {
 
 	public static void testSingleMetricsStdout(
 		final String stdOutContent,
-		final OpType expectedOpType, final int expectedConcurrency, final int expectedDriverCount,
+		final OpType expectedOpType, final int expectedConcurrency, final int expectedNodeCount,
 		final SizeInBytes expectedItemDataSize, final long metricsPeriodSec
 	) throws Exception {
 		Date lastTimeStamp = null, nextDateTimeStamp;
 		String OpTypeStr;
 		int concurrencyLevel;
-		int driverCount;
+		int nodeCount;
 		double concurrencyMean;
 		long prevTotalBytes = Long.MIN_VALUE, totalBytes;
 		long prevCountSucc = Long.MIN_VALUE, countSucc;
 		long countFail;
 		long avgItemSize;
-		double prevJobDuration = Double.NaN, jobDuration;
+		double prevStepDuration = Double.NaN, stepDuration;
 		double prevDurationSum = Double.NaN, durationSum;
 		double tpAvg, tpLast;
 		double bwAvg, bwLast;
@@ -502,15 +508,15 @@ public class LogAnalyzer {
 				);
 			}
 			lastTimeStamp = nextDateTimeStamp;
-			OpTypeStr = m.group("typeLoad").toUpperCase();
+			OpTypeStr = m.group("OpType").toUpperCase();
 			assertEquals(OpTypeStr, expectedOpType.name(), OpTypeStr);
 			concurrencyLevel = Integer.parseInt(m.group("concurrency"));
 			assertEquals(Integer.toString(concurrencyLevel), expectedConcurrency, concurrencyLevel);
-			driverCount = Integer.parseInt(m.group("driverCount"));
-			assertEquals(Integer.toString(driverCount), expectedDriverCount, driverCount);
+			nodeCount = Integer.parseInt(m.group("nodeCount"));
+			assertEquals(Integer.toString(nodeCount), expectedNodeCount, nodeCount);
 			concurrencyMean = Double.parseDouble(m.group("concurrencyLastMean"));
 			if(expectedConcurrency > 0) {
-				assertTrue(concurrencyMean <= driverCount * expectedConcurrency);
+				assertTrue(concurrencyMean <= nodeCount * expectedConcurrency);
 			} else {
 				assertTrue(concurrencyMean >= 0);
 			}
@@ -537,15 +543,15 @@ public class LogAnalyzer {
 					expectedItemDataSize.getAvg() / 100
 				);
 			}
-			jobDuration = Double.parseDouble(m.group("jobDur"));
-			if(Double.isNaN(prevJobDuration)) {
-				assertEquals(Double.toString(jobDuration), 0, jobDuration, 1);
+			stepDuration = Double.parseDouble(m.group("stepDur"));
+			if(Double.isNaN(prevStepDuration)) {
+				assertEquals(Double.toString(stepDuration), 0, stepDuration, 1);
 			} else {
 				assertEquals(
-					Double.toString(jobDuration), prevJobDuration + metricsPeriodSec, jobDuration, 1
+					Double.toString(stepDuration), prevStepDuration + metricsPeriodSec, stepDuration, 1
 				);
 			}
-			prevJobDuration = jobDuration;
+			prevStepDuration = stepDuration;
 			durationSum = Double.parseDouble(m.group("sumDur"));
 			if(Double.isNaN(prevDurationSum)) {
 				assertTrue(durationSum >= 0);
@@ -553,7 +559,7 @@ public class LogAnalyzer {
 				assertTrue(durationSum >= prevDurationSum);
 			}
 			final double
-				effEstimate = durationSum / (concurrencyLevel * driverCount * jobDuration);
+				effEstimate = durationSum / (concurrencyLevel * nodeCount * stepDuration);
 			assertTrue(Double.toString(effEstimate), effEstimate <= 1 && effEstimate >= 0);
 			prevDurationSum = durationSum;
 			tpAvg = Double.parseDouble(m.group("tpMean"));
@@ -578,7 +584,7 @@ public class LogAnalyzer {
 	}
 
 	public static void testMetricsTableStdout(
-		final String stdOutContent, final String stepName, final int driverCount,
+		final String stdOutContent, final String stepName, final int nodeCount,
 		final long countLimit, final Map<OpType, Integer> configConcurrencyMap
 	) throws Exception {
 
@@ -619,8 +625,8 @@ public class LogAnalyzer {
 			);
 			final int expectedConfigConcurrency = configConcurrencyMap.get(actualOpType);
 			if(expectedConfigConcurrency > 0) {
-				assertTrue(actualConcurrencyCurr <= driverCount * expectedConfigConcurrency);
-				assertTrue(actualConcurrencyLastMean <= driverCount * expectedConfigConcurrency);
+				assertTrue(actualConcurrencyCurr <= nodeCount * expectedConfigConcurrency);
+				assertTrue(actualConcurrencyLastMean <= nodeCount * expectedConfigConcurrency);
 			} else {
 				assertTrue(actualConcurrencyCurr >= 0);
 				assertTrue(actualConcurrencyLastMean >= 0);
@@ -648,7 +654,7 @@ public class LogAnalyzer {
 
 	public static void testFinalMetricsTableRowStdout(
 		final String stdOutContent, final String stepId, final OpType expectedOpType,
-		final int driverCount, final int expectedConcurrency, final long countLimit,
+		final int nodeCount, final int expectedConcurrency, final long countLimit,
 		final long timeLimit, final SizeInBytes expectedItemDataSize
 	) throws Exception {
 
@@ -692,9 +698,9 @@ public class LogAnalyzer {
 			rowFoundFlag
 		);
 		assertTrue(actualConcurrencyCurr >= 0);
-		assertTrue(driverCount * expectedConcurrency >= actualConcurrencyCurr);
+		assertTrue(nodeCount * expectedConcurrency >= actualConcurrencyCurr);
 		assertTrue(actualConcurrencyLastMean >= 0);
-		assertTrue(driverCount * expectedConcurrency >= actualConcurrencyLastMean);
+		assertTrue(nodeCount * expectedConcurrency >= actualConcurrencyLastMean);
 		assertTrue("Successful operations count should be > 0", succCount > 0);
 		assertEquals("Failure count should be 0", failCount, 0);
 		assertTrue("Step time should be > 0", stepTimeSec > 0);
