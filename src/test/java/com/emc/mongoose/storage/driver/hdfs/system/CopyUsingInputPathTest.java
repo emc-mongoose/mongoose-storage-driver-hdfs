@@ -88,15 +88,15 @@ public class CopyUsingInputPathTest {
 	}
 
 	@Test
-	public void testIoTraceRecords()
+	public void testOpTraceRecords()
 	throws Exception {
-		final LongAdder ioTraceRecCount = new LongAdder();
+		final LongAdder opTraceRecCount = new LongAdder();
 		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
 		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);
-		final Consumer<CSVRecord> ioTraceRecTestFunc = ioTraceRecord -> {
-			final String nextItemPath = ioTraceRecord.get("ItemPath");
+		final Consumer<CSVRecord> OpTraceRecTestFunc = OpTraceRecord -> {
+			final String nextItemPath = OpTraceRecord.get("ItemPath");
 			try {
 				final FileStatus dstFileStatus = endpoint.getFileStatus(
 					new org.apache.hadoop.fs.Path(nextItemPath)
@@ -105,18 +105,18 @@ public class CopyUsingInputPathTest {
 					new org.apache.hadoop.fs.Path(nextItemPath.replace(ITEM_PATH_1, ITEM_PATH_0))
 				);
 				assertEquals(srcFileStatus.getLen(), dstFileStatus.getLen());
-				LogAnalyzer.testIoTraceRecord(
-					ioTraceRecord, OpType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
+				LogAnalyzer.testOpTraceRecord(
+					OpTraceRecord, OpType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
 				);
-				ioTraceRecCount.increment();
+				opTraceRecCount.increment();
 			} catch(final IOException e) {
 				fail(e.getMessage());
 			}
 		};
-		LogAnalyzer.testContainerIoTraceLogRecords(STEP_ID, ioTraceRecTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, OpTraceRecTestFunc);
 		assertEquals(
 			"There should be " + TEST_STEP_LIMIT_COUNT + " records in the I/O trace log file",
-			TEST_STEP_LIMIT_COUNT, ioTraceRecCount.sum()
+			TEST_STEP_LIMIT_COUNT, opTraceRecCount.sum()
 		);
 	}
 
@@ -124,7 +124,7 @@ public class CopyUsingInputPathTest {
 	public void testTotalMetricsLogRecords()
 	throws Exception {
 		final List<CSVRecord> totalMetricsLogRecords = LogAnalyzer
-			.getContainerMetricsTotalLogRecords(STEP_ID);
+			.getMetricsTotalLogRecords(STEP_ID);
 		assertEquals(
 			"There should be 1 total metrics records in the log file", 1,
 			totalMetricsLogRecords.size()
@@ -137,7 +137,7 @@ public class CopyUsingInputPathTest {
 	@Test
 	public void testMetricsLogRecords()
 	throws Exception {
-		final List<CSVRecord> metricsLogRecords = LogAnalyzer.getContainerMetricsLogRecords(
+		final List<CSVRecord> metricsLogRecords = LogAnalyzer.getMetricsLogRecords(
 			STEP_ID
 		);
 		assertTrue(

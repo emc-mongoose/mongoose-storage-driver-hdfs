@@ -91,27 +91,27 @@ public class ReadUsingVariablePathTest {
 	}
 
 	@Test
-	public void testIoTraceLogRecords()
+	public void testOpTraceLogRecords()
 	throws Exception {
-		final LongAdder ioTraceRecCount = new LongAdder();
+		final LongAdder opTraceRecCount = new LongAdder();
 		final int baseOutputPathLen = ITEM_OUTPUT_PATH.length();
 		// Item path should look like:
 		// ${FILE_OUTPUT_PATH}/1/b/0123456789abcdef
 		// ${FILE_OUTPUT_PATH}/b/fedcba9876543210
 		final Pattern subPathPtrn = Pattern.compile("(/[0-9a-f]){1,2}/[0-9a-f]{16}");
-		final Consumer<CSVRecord> ioTraceReqTestFunc = ioTraceRec -> {
-			LogAnalyzer.testIoTraceRecord(ioTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
-			String nextFilePath = ioTraceRec.get("ItemPath");
+		final Consumer<CSVRecord> OpTraceReqTestFunc = OpTraceRec -> {
+			LogAnalyzer.testOpTraceRecord(OpTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
+			String nextFilePath = OpTraceRec.get("ItemPath");
 			assertTrue(nextFilePath.startsWith(ITEM_OUTPUT_PATH));
 			nextFilePath = nextFilePath.substring(baseOutputPathLen);
 			final Matcher m = subPathPtrn.matcher(nextFilePath);
 			assertTrue("\"" + nextFilePath + "\" doesn't match the pattern" , m.matches());
-			ioTraceRecCount.increment();
+			opTraceRecCount.increment();
 		};
-		LogAnalyzer.testIoTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, OpTraceReqTestFunc);
 		assertEquals(
 			"There should be more than 1 record in the I/O trace log file",
-			STEP_LIMIT_COUNT, ioTraceRecCount.sum()
+			STEP_LIMIT_COUNT, opTraceRecCount.sum()
 		);
 	}
 

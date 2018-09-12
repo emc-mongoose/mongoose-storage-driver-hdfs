@@ -128,18 +128,18 @@ public class CircularAppendTest {
 	}
 
 	@Test
-	public void testIoTraceLogRecords()
+	public void testOpTraceLogRecords()
 	throws Exception {
-		final LongAdder ioTraceRecCount = new LongAdder();
+		final LongAdder opTraceRecCount = new LongAdder();
 		final Consumer<CSVRecord> ioTraceReqTestFunc = ioTraceRec -> {
-			LogAnalyzer.testIoTraceRecord(ioTraceRec, OpType.UPDATE.ordinal(), ITEM_DATA_SIZE);
-			ioTraceRecCount.increment();
+			LogAnalyzer.testOpTraceRecord(ioTraceRec, OpType.UPDATE.ordinal(), ITEM_DATA_SIZE);
+			opTraceRecCount.increment();
 		};
-		LogAnalyzer.testIoTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
 		assertTrue(
 			"There should be more than " + BASE_ITEMS_COUNT +
-				" records in the I/O trace log file, but got: " + ioTraceRecCount.sum(),
-			BASE_ITEMS_COUNT < ioTraceRecCount.sum()
+				" records in the I/O trace log file, but got: " + opTraceRecCount.sum(),
+			BASE_ITEMS_COUNT < opTraceRecCount.sum()
 		);
 	}
 

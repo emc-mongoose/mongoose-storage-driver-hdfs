@@ -51,24 +51,9 @@ public class LogAnalyzer {
 		}
 	}
 
-	public static List<String> getContainerLogFileLines(final String stepId, final String fileName)
-	throws IOException {
-		final File logFile = Paths
-			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
-			.toFile();
-		try(final BufferedReader br = new BufferedReader(new FileReader(logFile))) {
-			return br.lines().collect(Collectors.toList());
-		}
-	}
-
 	private static List<String> getMessageLogLines(final String stepId)
 	throws IOException {
 		return getLogFileLines(stepId, "messages.log");
-	}
-
-	private static List<String> getContainerMessageLogLines(final String stepId)
-	throws IOException {
-		return getContainerLogFileLines(stepId, "messages.log");
 	}
 
 	private static List<String> getErrorsLogLines(final String stepId)
@@ -76,19 +61,9 @@ public class LogAnalyzer {
 		return getLogFileLines(stepId, "errors.log");
 	}
 
-	private static List<String> getContainerErrorsLogLines(final String stepId)
-	throws IOException {
-		return getContainerLogFileLines(stepId, "errors.log");
-	}
-
 	private static List<String> getConfigLogLines(final String stepId)
 	throws IOException {
 		return getLogFileLines(stepId, "config.log");
-	}
-
-	private static List<String> getContainerConfigLogLines(final String stepId)
-	throws IOException {
-		return getContainerLogFileLines(stepId, "config.log");
 	}
 
 	private static List<String> getPartsUploadLogLines(final String stepId)
@@ -96,18 +71,7 @@ public class LogAnalyzer {
 		return getLogFileLines(stepId, "parts.upload.csv");
 	}
 
-	private static List<String> getContainerPartsUploadLogLines(final String stepId)
-	throws IOException {
-		return getContainerLogFileLines(stepId, "parts.upload.csv");
-	}
-
 	private static File getLogFile(final String stepId, final String fileName) {
-		return Paths
-			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
-			.toFile();
-	}
-
-	private static File getContainerLogFile(final String stepId, final String fileName) {
 		return Paths
 			.get(MongooseContainer.HOST_LOG_PATH.toString(), stepId, fileName)
 			.toFile();
@@ -147,21 +111,9 @@ public class LogAnalyzer {
 		return waitAndGetLogFileCsvRecords(logFile);
 	}
 
-	public static List<CSVRecord> getContainerLogFileCsvRecords(
-		final String stepId, final String fileName
-	) throws IOException {
-		final File logFile = getContainerLogFile(stepId, fileName);
-		return waitAndGetLogFileCsvRecords(logFile);
-	}
-
 	public static List<CSVRecord> getMetricsMedLogRecords(final String stepId)
 	throws IOException {
 		return getLogFileCsvRecords(stepId, "metrics.threshold.csv");
-	}
-
-	public static List<CSVRecord> getContainerMetricsMedLogRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "metrics.threshold.csv");
 	}
 
 	public static List<CSVRecord> getMetricsMedTotalLogRecords(final String stepId)
@@ -169,19 +121,9 @@ public class LogAnalyzer {
 		return getLogFileCsvRecords(stepId, "metrics.threshold.total.csv");
 	}
 
-	public static List<CSVRecord> getContainerMetricsMedTotalLogRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "metrics.threshold.total.csv");
-	}
-
 	public static List<CSVRecord> getMetricsLogRecords(final String stepId)
 	throws IOException {
 		return getLogFileCsvRecords(stepId, "metrics.csv");
-	}
-
-	public static List<CSVRecord> getContainerMetricsLogRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "metrics.csv");
 	}
 
 	public static List<CSVRecord> getMetricsTotalLogRecords(final String stepId)
@@ -189,19 +131,9 @@ public class LogAnalyzer {
 		return getLogFileCsvRecords(stepId, "metrics.total.csv");
 	}
 
-	public static List<CSVRecord> getContainerMetricsTotalLogRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "metrics.total.csv");
-	}
-
 	public static List<CSVRecord> getIoTraceLogRecords(final String stepId)
 	throws IOException {
-		return getLogFileCsvRecords(stepId, "io.trace.csv");
-	}
-
-	public static List<CSVRecord> getContainerIoTraceLogRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "io.trace.csv");
+		return getLogFileCsvRecords(stepId, "op.trace.csv");
 	}
 
 	private static void waitLogFile(final File logFile) {
@@ -222,7 +154,7 @@ public class LogAnalyzer {
 		}
 	}
 
-	public static void testIoTraceLogFile(
+	public static void testOpTraceLogFile(
 		final File logFile, final Consumer<CSVRecord> csvRecordTestFunc
 	) throws IOException {
 		try(final BufferedReader br = new BufferedReader(new FileReader(logFile))) {
@@ -232,30 +164,17 @@ public class LogAnalyzer {
 		}
 	}
 
-	public static void testIoTraceLogRecords(
+	public static void testOpTraceLogRecords(
 		final String stepId, final Consumer<CSVRecord> csvRecordTestFunc
 	) throws IOException {
-		final File logFile = getLogFile(stepId, "io.trace.csv");
+		final File logFile = getLogFile(stepId, "op.trace.csv");
 		waitLogFile(logFile);
-		testIoTraceLogFile(logFile, csvRecordTestFunc);
-	}
-
-	public static void testContainerIoTraceLogRecords(
-		final String stepId, final Consumer<CSVRecord> csvRecordTestFunc
-	) throws IOException {
-		final File logFile = getContainerLogFile(stepId, "io.trace.csv");
-		waitLogFile(logFile);
-		testIoTraceLogFile(logFile, csvRecordTestFunc);
+		testOpTraceLogFile(logFile, csvRecordTestFunc);
 	}
 
 	public static List<CSVRecord> getPartsUploadRecords(final String stepId)
 	throws IOException {
 		return getLogFileCsvRecords(stepId, "parts.upload.csv");
-	}
-
-	public static List<CSVRecord> getContainerPartsUploadRecords(final String stepId)
-	throws IOException {
-		return getContainerLogFileCsvRecords(stepId, "parts.upload.csv");
 	}
 
 	public static void testMetricsLogRecords(
@@ -504,11 +423,11 @@ public class LogAnalyzer {
 		assertTrue(latMax >= latHiQ);
 	}
 
-	public static void testIoTraceRecord(
-		final CSVRecord ioTraceRecord, final int OpTypeCodeExpected, final SizeInBytes sizeExpected
+	public static void testOpTraceRecord(
+		final CSVRecord opTraceRecord, final int OpTypeCodeExpected, final SizeInBytes sizeExpected
 	) {
-		assertEquals(OpTypeCodeExpected, Integer.parseInt(ioTraceRecord.get("OpTypeCode")));
-		final int actualStatusCode = Integer.parseInt(ioTraceRecord.get("StatusCode"));
+		assertEquals(OpTypeCodeExpected, Integer.parseInt(opTraceRecord.get(2)));
+		final int actualStatusCode = Integer.parseInt(opTraceRecord.get("StatusCode"));
 		if(Operation.Status.INTERRUPTED.ordinal() == actualStatusCode) {
 			return;
 		}
@@ -516,12 +435,12 @@ public class LogAnalyzer {
 			"Actual status code is " + Operation.Status.values()[actualStatusCode],
 			SUCC.ordinal(), actualStatusCode
 		);
-		final long duration = Long.parseLong(ioTraceRecord.get("Duration[us]"));
-		final String latencyStr = ioTraceRecord.get("RespLatency[us]");
+		final long duration = Long.parseLong(opTraceRecord.get("Duration[us]"));
+		final String latencyStr = opTraceRecord.get("RespLatency[us]");
 		if(latencyStr != null && !latencyStr.isEmpty()) {
 			assertTrue(duration >= Long.parseLong(latencyStr));
 		}
-		final long size = Long.parseLong(ioTraceRecord.get("TransferSize"));
+		final long size = Long.parseLong(opTraceRecord.get("TransferSize"));
 		if(sizeExpected.getMin() < sizeExpected.getMax()) {
 			assertTrue(
 				"Expected the size " + sizeExpected.toString() + ", but got " + size,

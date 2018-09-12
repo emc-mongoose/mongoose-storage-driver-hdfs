@@ -55,11 +55,9 @@ Load
 				}
 			},
 			"load": {
-				"type": "update",
-				"generator": {
-					"recycle": {
-						"enabled": true
-					}
+				"op" : {
+					"type": "update",
+					"recycle" : true
 				},
 				"step": {
 					"limit": {
