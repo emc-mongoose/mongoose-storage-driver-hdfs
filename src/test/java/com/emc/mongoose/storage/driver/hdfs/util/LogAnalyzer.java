@@ -653,31 +653,27 @@ public class LogAnalyzer {
 	}
 
 	public static void testFinalMetricsTableRowStdout(
-		final String stdOutContent, final String stepId, final OpType expectedOpType,
-		final int nodeCount, final int expectedConcurrency, final long countLimit,
-		final long timeLimit, final SizeInBytes expectedItemDataSize
-	) throws Exception {
-
-		final Matcher m = LogPatterns.STD_OUT_METRICS_TABLE_ROW_FINAL.matcher(stdOutContent);
-		boolean 	rowFoundFlag = false;
-		Date nextTimstamp = null;
-		int actualConcurrencyCurr = -1;
-		float actualConcurrencyLastMean = -1;
-		long succCount = -1;
-		long failCount = -1;
-		float stepTimeSec = -1;
-		float tp = -1;
-		float bw = -1;
+		final String stdOutContent, final String stepId, final OpType expectedOpType, final int nodeCount,
+		final int expectedConcurrency, final long countLimit, final long timeLimit,
+		final SizeInBytes expectedItemDataSize
+	) {
+		final Matcher m = LogPatterns.STD_OUT_METRICS_TABLE_ROW.matcher(stdOutContent);
+		boolean rowFoundFlag = false;
+		int actualConcurrencyCurr = - 1;
+		float actualConcurrencyLastMean = - 1;
+		long succCount = - 1;
+		long failCount = - 1;
+		float stepTimeSec = - 1;
+		float tp = - 1;
+		float bw = - 1;
 		long lat = 0;
-		long dur = -1;
-
+		long dur = - 1;
 		while(m.find()) {
 			final String actualStepNameEnding = m.group("stepName");
 			if(stepId.endsWith(actualStepNameEnding) || stepId.equals(actualStepNameEnding)) {
 				final OpType actualOpType = OpType.valueOf(m.group("opType"));
 				if(actualOpType.equals(expectedOpType)) {
 					rowFoundFlag = true;
-					nextTimstamp = FMT_DATE_METRICS_TABLE.parse(m.group("timestamp"));
 					actualConcurrencyCurr = Integer.parseInt(m.group("concurrencyCurr"));
 					actualConcurrencyLastMean = Float.parseFloat(m.group("concurrencyLastMean"));
 					succCount = Long.parseLong(m.group("succCount"));
@@ -687,15 +683,12 @@ public class LogAnalyzer {
 					bw = Float.parseFloat(m.group("bw"));
 					lat = Long.parseLong(m.group("lat"));
 					dur = Long.parseLong(m.group("dur"));
-					break;
 				}
 			}
 		}
-
 		assertTrue(
-			"Summary metrics row with step id ending with \"" + stepId + "\" and I/O type \""
-				+ expectedOpType + "\" was not found",
-			rowFoundFlag
+			"Summary metrics row with step id ending with \"" + stepId + "\" and I/O type \"" + expectedOpType +
+				"\" was not found", rowFoundFlag
 		);
 		assertTrue(actualConcurrencyCurr >= 0);
 		assertTrue(nodeCount * expectedConcurrency >= actualConcurrencyCurr);
@@ -706,8 +699,7 @@ public class LogAnalyzer {
 		assertTrue("Step time should be > 0", stepTimeSec > 0);
 		if(timeLimit > 0) {
 			assertTrue(
-				"Step time (" + stepTimeSec + ") should not be much more than time limit ("
-					+ timeLimit + ")",
+				"Step time (" + stepTimeSec + ") should not be much more than time limit (" + timeLimit + ")",
 				stepTimeSec <= timeLimit + 10
 			);
 		}
@@ -716,26 +708,23 @@ public class LogAnalyzer {
 			final float avgItemSize = MIB * bw / tp;
 			if(expectedItemDataSize.getMin() == expectedItemDataSize.getMax()) {
 				assertEquals(
-					"Actual average items size (" + new SizeInBytes((long) avgItemSize)
-						+ ") should be approx equal the expected (" + expectedItemDataSize + ")",
+					"Actual average items size (" + new SizeInBytes((long) avgItemSize) +
+						") should be approx equal the expected (" + expectedItemDataSize + ")",
 					expectedItemDataSize.get(), avgItemSize, expectedItemDataSize.get() / 10
 				);
 			} else {
 				assertTrue(
-					"Actual average items size (" + new SizeInBytes((long) avgItemSize)
-						+ ") doesn't fit the expected (" + expectedItemDataSize + ")",
+					"Actual average items size (" + new SizeInBytes((long) avgItemSize) +
+						") doesn't fit the expected (" + expectedItemDataSize + ")",
 					avgItemSize >= expectedItemDataSize.getMin()
 				);
 				assertTrue(
-					"Actual average items size (" + new SizeInBytes((long) avgItemSize)
-						+ ") doesn't fit the expected (" + expectedItemDataSize + ")",
+					"Actual average items size (" + new SizeInBytes((long) avgItemSize) +
+						") doesn't fit the expected (" + expectedItemDataSize + ")",
 					avgItemSize <= expectedItemDataSize.getMax()
 				);
 			}
 		}
-		assertTrue(
-			"Mean latency (" + lat + ") should not be more than mean duration (" + dur + ")",
-			lat <= dur
-		);
+		assertTrue("Mean latency (" + lat + ") should not be more than mean duration (" + dur + ")", lat <= dur);
 	}
 }
