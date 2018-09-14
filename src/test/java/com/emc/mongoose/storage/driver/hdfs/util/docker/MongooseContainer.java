@@ -32,11 +32,12 @@ import static com.emc.mongoose.Constants.USER_HOME;
 import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
 
 public class MongooseContainer
-implements Runnable, Closeable {
+	implements Runnable, Closeable {
 
 	private static final Logger LOG = Logger.getLogger(MongooseContainer.class.getSimpleName());
 	private static final String BASE_DIR = new File("").getAbsolutePath();
 	private static final String APP_VERSION;
+
 	static {
 		final Config bundledDefaults;
 		try {
@@ -51,15 +52,18 @@ implements Runnable, Closeable {
 		}
 		APP_VERSION = bundledDefaults.stringVal("run-version");
 	}
-	private static final String MONGOOSE_DIR = Paths.get(USER_HOME, "." + APP_NAME, APP_VERSION).toString();
 
+	private static final String MONGOOSE_DIR = Paths.get(USER_HOME, "." + APP_NAME, APP_VERSION).toString();
 	public static final String CONTAINER_SHARE_PATH = "/root/.mongoose/" + APP_VERSION + "/share";
 	public static final Path HOST_SHARE_PATH = Paths.get(MONGOOSE_DIR, "share");
+
 	static {
 		HOST_SHARE_PATH.toFile().mkdir();
 	}
+
 	private static final String CONTAINER_LOG_PATH = "/root/.mongoose/" + APP_VERSION + "/log";
 	public static final Path HOST_LOG_PATH = Paths.get(MONGOOSE_DIR, "log");
+
 	static {
 		HOST_LOG_PATH.toFile().mkdir();
 	}
@@ -70,14 +74,12 @@ implements Runnable, Closeable {
 	private final ResultCallback<Frame> streamsCallback = new ContainerOutputCallback(
 		stdOutBuff, stdErrBuff
 	);
-
 	private final DockerClient dockerClient;
 	private final int durationLimitSeconds;
-
 	private String testContainerId = null;
-	private long duration = -1;
+	private long duration = - 1;
 	private String stdOutput = null;
-	private int containerExitCode = -1;
+	private int containerExitCode = - 1;
 
 	public long getDuration() {
 		return duration;
@@ -92,11 +94,8 @@ implements Runnable, Closeable {
 	}
 
 	public MongooseContainer(final List<String> configArgs, final int durationLimitSeconds) {
-
 		this.durationLimitSeconds = durationLimitSeconds;
-
 		this.dockerClient = DockerClientBuilder.getInstance().build();
-
 		final File dockerBuildFile = Paths
 			.get(BASE_DIR, "docker", "Dockerfile")
 			.toFile();
@@ -112,10 +111,9 @@ implements Runnable, Closeable {
 			.exec(buildImageResultCallback);
 		final String testingImageId = buildImageResultCallback.awaitImageId();
 		LOG.info("Build mongoose testing image id: " + testingImageId);
-
 		this.configArgs.add("--output-metrics-trace-persist=true");
 		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
-		for(final String configArg: configArgs) {
+		for(final String configArg : configArgs) {
 			if(configArg.startsWith("--run-scenario=")) {
 				final String scenarioPathStr = configArg.substring("--run-scenario=".length());
 				if(scenarioPathStr.startsWith(HOST_SHARE_PATH.toString())) {
@@ -132,27 +130,23 @@ implements Runnable, Closeable {
 				this.configArgs.add(configArg);
 			}
 		}
-
 		LOG.info("Mongoose test container arguments: " + Arrays.toString(configArgs.toArray()));
-
 		final Volume volumeShare = new Volume(CONTAINER_SHARE_PATH);
 		final Volume volumeLog = new Volume(CONTAINER_LOG_PATH);
 		final Bind[] binds = new Bind[] {
 			new Bind(HOST_SHARE_PATH.toString(), volumeShare),
 			new Bind(HOST_LOG_PATH.toString(), volumeLog),
 		};
-
 		// put the environment variables into the container
 		final Map<String, String> envMap = System.getenv();
 		final String[] env = envMap.keySet().toArray(new String[envMap.size()]);
-		for(int i = 0; i < env.length; i ++) {
+		for(int i = 0; i < env.length; i++) {
 			if("PATH".equals(env[i])) {
 				env[i] = env[i] + "=" + envMap.get(env[i]) + ":/bin";
 			} else {
 				env[i] = env[i] + "=" + envMap.get(env[i]);
 			}
 		}
-
 		final CreateContainerResponse container = dockerClient
 			.createContainerCmd(testingImageId)
 			.withName("mongoose")
@@ -166,7 +160,6 @@ implements Runnable, Closeable {
 			.withEnv(env)
 			.withCmd(this.configArgs)
 			.exec();
-
 		testContainerId = container.getId();
 		LOG.info("Created the mongoose test container w/ id: " + testContainerId);
 	}

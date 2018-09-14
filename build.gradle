@@ -21,7 +21,8 @@ task("create-dirs").doLast(
 
 repositories {
 	mavenCentral()
-	maven { url "https://oss.sonatype.org/content/repositories/comgithubemc-mongoose-1199" }
+	//for version 4.0.0-alpha6
+	maven { url "https://oss.sonatype.org/content/repositories/comgithubemc-mongoose-1200" }
 }
 
 ext {
