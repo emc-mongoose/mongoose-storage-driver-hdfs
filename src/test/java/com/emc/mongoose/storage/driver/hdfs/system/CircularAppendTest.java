@@ -2,9 +2,10 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
-import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
+import com.emc.mongoose.storage.driver.hdfs.util.LogValidationUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.StorageNodeContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -43,7 +44,7 @@ public class CircularAppendTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(16 * MIB);
 	private static final int CONCURRENCY = 10;
 
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
+	private static StorageNodeContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -73,7 +74,7 @@ public class CircularAppendTest {
 		EnvUtil.set("ITEM_LIST_FILE_1", ITEM_LIST_FILE_1);
 
 		try {
-			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+			HDFS_NODE_CONTAINER = new StorageNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final Exception e) {
 			throw new AssertionError(e);
@@ -93,12 +94,12 @@ public class CircularAppendTest {
 	@Test
 	public void testMetricsLogRecords()
 	throws Exception {
-		final List<CSVRecord> metricsLogRecords = LogAnalyzer.getMetricsLogRecords(STEP_ID);
+		final List<CSVRecord> metricsLogRecords = LogValidationUtil.getMetricsLogRecords(STEP_ID);
 		assertTrue(
 			"There should be more than 0 metrics records in the log file",
 			metricsLogRecords.size() > 0
 		);
-		LogAnalyzer.testMetricsLogRecords(
+		LogValidationUtil.testMetricsLogRecords(
 			metricsLogRecords, OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE,
 			BASE_ITEMS_COUNT * APPEND_COUNT, 0, 10
 		);
@@ -107,14 +108,14 @@ public class CircularAppendTest {
 	@Test
 	public void testTotalMetricsLogRecords()
 	throws Exception {
-		final List<CSVRecord> totalMetrcisLogRecords = LogAnalyzer.getMetricsTotalLogRecords(
+		final List<CSVRecord> totalMetrcisLogRecords = LogValidationUtil.getMetricsTotalLogRecords(
 			STEP_ID
 		);
 		assertEquals(
 			"There should be 1 total metrics records in the log file", 1,
 			totalMetrcisLogRecords.size()
 		);
-		LogAnalyzer.testTotalMetricsLogRecord(
+		LogValidationUtil.testTotalMetricsLogRecord(
 			totalMetrcisLogRecords.get(0), OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
 		);
 	}
@@ -122,7 +123,7 @@ public class CircularAppendTest {
 	@Test
 	public void testSingleMetricsStdout()
 	throws Exception {
-		LogAnalyzer.testSingleMetricsStdout(
+		LogValidationUtil.testSingleMetricsStdout(
 			STD_OUTPUT.replaceAll("[\r\n]+", " "), OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
 		);
 	}
@@ -132,10 +133,10 @@ public class CircularAppendTest {
 	throws Exception {
 		final LongAdder opTraceRecCount = new LongAdder();
 		final Consumer<CSVRecord> ioTraceReqTestFunc = ioTraceRec -> {
-			LogAnalyzer.testOpTraceRecord(ioTraceRec, OpType.UPDATE.ordinal(), ITEM_DATA_SIZE);
+			LogValidationUtil.testOpTraceRecord(ioTraceRec, OpType.UPDATE.ordinal(), ITEM_DATA_SIZE);
 			opTraceRecCount.increment();
 		};
-		LogAnalyzer.testOpTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
+		LogValidationUtil.testOpTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
 		assertTrue(
 			"There should be more than " + BASE_ITEMS_COUNT +
 				" records in the I/O trace log file, but got: " + opTraceRecCount.sum(),
