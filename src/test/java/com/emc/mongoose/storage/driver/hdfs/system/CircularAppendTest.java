@@ -5,7 +5,7 @@ import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogValidationUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-import com.emc.mongoose.storage.driver.hdfs.util.docker.StorageNodeContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseWithDriverContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -44,7 +44,7 @@ public class CircularAppendTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(16 * MIB);
 	private static final int CONCURRENCY = 10;
 
-	private static StorageNodeContainer HDFS_NODE_CONTAINER;
+	private static MongooseWithDriverContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -74,7 +74,7 @@ public class CircularAppendTest {
 		EnvUtil.set("ITEM_LIST_FILE_1", ITEM_LIST_FILE_1);
 
 		try {
-			HDFS_NODE_CONTAINER = new StorageNodeContainer();
+			HDFS_NODE_CONTAINER = new MongooseWithDriverContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final Exception e) {
 			throw new AssertionError(e);

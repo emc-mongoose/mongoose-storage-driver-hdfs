@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class StorageNodeContainer
+public final class MongooseWithDriverContainer
 	extends ContainerBase {
 
 	public static final String IMAGE_VERSION = MongooseContainer.IMAGE_VERSION;
@@ -62,7 +62,7 @@ public final class StorageNodeContainer
 		return MongooseContainer.getHostItemOutputPath(stepId);
 	}
 
-	public StorageNodeContainer(
+	public MongooseWithDriverContainer(
 		final String imageName, final String stepId, final String containerScenarioPath,
 		final List<String> env, final List<String> args, final boolean attachOutputFlag,
 		final boolean collectOutputFlag, final boolean outputMetricsTracePersistFlag
@@ -71,7 +71,7 @@ public final class StorageNodeContainer
 			outputMetricsTracePersistFlag);
 	}
 
-	public StorageNodeContainer(
+	public MongooseWithDriverContainer(
 		final String imageName, final String version, final String stepId, final String containerScenarioPath,
 		final List<String> env, final List<String> args, final boolean attachOutputFlag,
 		final boolean collectOutputFlag, final boolean outputMetricsTracePersistFlag
