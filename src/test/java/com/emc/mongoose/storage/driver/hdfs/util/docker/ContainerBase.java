@@ -12,26 +12,31 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.command.BuildImageResultCallback;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.emc.mongoose.util.docker.Docker.DEFAULT_IMAGE_VERSION;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.Docker.DEFAULT_IMAGE_VERSION;
 
 public abstract class ContainerBase
 extends AsyncRunnableBase
 implements Docker.Container {
 
 	private static final Logger LOG = Logger.getLogger(ContainerBase.class.getSimpleName());
+	private static final String BASE_DIR = new File("").getAbsolutePath();
 
 	private final String version;
 	private final List<String> env;
@@ -72,11 +77,29 @@ implements Docker.Container {
 		}
 	}
 
+	public final String buildImage(final String tag) {
+		final File dockerBuildFile = Paths
+			.get(BASE_DIR, "docker", "Dockerfile")
+			.toFile();
+		final BuildImageResultCallback buildImageResultCallback = new BuildImageResultCallback();
+		Docker.CLIENT
+			.buildImageCmd()
+			.withBaseDirectory(new File(BASE_DIR))
+			.withDockerfile(dockerBuildFile)
+			.withBuildArg("MONGOOSE_VERSION", appVersion())
+			.withPull(true)
+			.withTags(Collections.singleton(tag))
+			.exec(buildImageResultCallback);
+		return buildImageResultCallback.awaitImageId();
+	}
+
 	protected abstract String imageName();
 
 	protected abstract List<String> containerArgs();
 
 	protected abstract String entrypoint();
+
+	protected abstract String appVersion();
 
 	@Override
 	public final int exitStatusCode() {

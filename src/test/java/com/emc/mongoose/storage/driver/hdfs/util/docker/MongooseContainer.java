@@ -20,7 +20,7 @@ import static com.emc.mongoose.Constants.USER_HOME;
 import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
 import static com.emc.mongoose.util.TestCaseUtil.snakeCaseName;
 
-public final class MongooseContainer
+public class MongooseContainer
 	extends ContainerBase {
 
 	public static final String IMAGE_VERSION = System.getenv("MONGOOSE_VERSION");

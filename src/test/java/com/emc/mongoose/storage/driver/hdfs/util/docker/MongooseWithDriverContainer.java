@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class MongooseWithDriverContainer
-	extends ContainerBase {
+	extends MongooseContainer {
 
 	public static final String IMAGE_VERSION = MongooseContainer.IMAGE_VERSION;
 	public static final String APP_VERSION = MongooseContainer.APP_VERSION;
@@ -86,22 +86,6 @@ public final class MongooseWithDriverContainer
 			this.args.add("--run-scenario=" + containerScenarioPath);
 		}
 		buildImage(imageName);
-	}
-
-	public static final String buildImage(final String tag) {
-		final File dockerBuildFile = Paths
-			.get(BASE_DIR, "docker", "Dockerfile")
-			.toFile();
-		final BuildImageResultCallback buildImageResultCallback = new BuildImageResultCallback();
-		Docker.CLIENT
-			.buildImageCmd()
-			.withBaseDirectory(new File(BASE_DIR))
-			.withDockerfile(dockerBuildFile)
-			.withBuildArg("MONGOOSE_VERSION", APP_VERSION)
-			.withPull(true)
-			.withTags(Collections.singleton(tag))
-			.exec(buildImageResultCallback);
-		return buildImageResultCallback.awaitImageId();
 	}
 
 	public final void imageName(final String imageName) {

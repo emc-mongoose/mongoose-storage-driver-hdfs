@@ -3,7 +3,7 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
-import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.StorageNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVRecord;
@@ -42,7 +42,7 @@ public class CopyUsingInputPathTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(MIB);
 	private static final int CONCURRENCY = 100;
 
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
+	private static StorageNodeContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -70,7 +70,7 @@ public class CopyUsingInputPathTest {
 		EnvUtil.set("ITEM_PATH_1", ITEM_PATH_1);
 
 		try {
-			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+			HDFS_NODE_CONTAINER = new StorageNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final Exception e) {
 			throw new AssertionError(e);

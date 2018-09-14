@@ -7,7 +7,7 @@ import com.emc.mongoose.item.PathItem;
 import com.emc.mongoose.item.op.path.PathOperation;
 import com.emc.mongoose.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.StorageNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
@@ -29,7 +29,7 @@ public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
+	private static StorageNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -70,7 +70,7 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
 			config.val("storage-net-node-addrs", Collections.singletonList("127.0.0.1"));
-			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
+			config.val("storage-net-node-port", StorageNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);
@@ -102,7 +102,7 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 	public static void setUpClass()
 	throws Exception {
 		try {
-			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+			HDFS_NODE_CONTAINER = new StorageNodeContainer();
 		} catch(final Exception e) {
 			throw new AssertionError(e);
 		}
