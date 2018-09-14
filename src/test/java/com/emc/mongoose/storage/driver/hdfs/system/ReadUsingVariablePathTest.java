@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -85,7 +84,6 @@ public class ReadUsingVariablePathTest {
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
-		TimeUnit.MINUTES.sleep(10);
 		HDFS_NODE_CONTAINER.close();
 		MONGOOSE_CONTAINER.close();
 	}
