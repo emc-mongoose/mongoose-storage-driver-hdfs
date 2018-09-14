@@ -96,7 +96,7 @@ public class CopyUsingInputPathTest {
 		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);
 		final Consumer<CSVRecord> OpTraceRecTestFunc = OpTraceRecord -> {
-			final String nextItemPath = OpTraceRecord.get("ItemPath");
+			final String nextItemPath = OpTraceRecord.get(1);
 			try {
 				final FileStatus dstFileStatus = endpoint.getFileStatus(
 					new org.apache.hadoop.fs.Path(nextItemPath)
