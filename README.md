@@ -46,7 +46,7 @@ and uses the following libraries:
 # Usage
 
 Latest stable pre-built jar file is available at:
-https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/latest/mongoose-storage-driver-hdfs.jar
+https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/0.1.8/mongoose-storage-driver-hdfs.jar
 This jar file may be downloaded manually and placed into the `ext`
 directory of Mongoose to be automatically loaded into the runtime.
 
