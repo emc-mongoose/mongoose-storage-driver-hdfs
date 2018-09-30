@@ -75,7 +75,7 @@ docker run \
 
 ### Distributed
 
-#### Agent Node
+#### Additional Node
 
 ```bash
 docker run \
@@ -85,13 +85,12 @@ docker run \
     --run-node
 ```
 
-#### Controller
+#### Entry Node
 
 ```bash
 docker run \
     --network host \
     emcmongoose/mongoose-storage-driver-hdfs \
-    --load-step-distributed \
     --load-step-node-addrs=<ADDR1,ADDR2,...> \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
@@ -153,9 +152,9 @@ java -jar mongoose-<VERSION>.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \
-    --load-step-limit-concurrency=10 \
-    --load-step-limit-count=100 \
+    --load-op-limit-count=100 \
     --storage-auth-uid=root \
+    --storage-driver-limit-concurrency=10 \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<HADOOP_NAME_NODE_IP_ADDR> \
     --storage-net-node-port=9000
