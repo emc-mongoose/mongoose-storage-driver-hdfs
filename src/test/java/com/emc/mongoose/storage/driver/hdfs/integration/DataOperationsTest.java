@@ -149,7 +149,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -175,7 +175,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -223,7 +223,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 						0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 					);
 					try {
-						prepareOperation(createTask);
+						prepare(createTask);
 						createTask.status(Operation.Status.ACTIVE);
 						while(Operation.Status.ACTIVE.equals(createTask.status())) {
 							invokeNio(createTask);
@@ -241,7 +241,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> concatTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dstItem, null, "/default", CREDENTIAL, null, 0, srcItems
 		);
-		prepareOperation(concatTask);
+		prepare(concatTask);
 		concatTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(concatTask.status())) {
 			invokeNio(concatTask);
@@ -266,7 +266,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -296,7 +296,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -329,7 +329,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -360,7 +360,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -396,7 +396,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -435,7 +435,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> createTask = new DataOperationImpl<>(
 			0, OpType.CREATE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(createTask);
+		prepare(createTask);
 		createTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(createTask.status())) {
 			invokeNio(createTask);
@@ -446,7 +446,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 		final DataOperation<DataItem> deleteTask = new DataOperationImpl<>(
 			0, OpType.DELETE, dataItem, null, "/default", CREDENTIAL, null, 0, null
 		);
-		prepareOperation(deleteTask);
+		prepare(deleteTask);
 		deleteTask.status(Operation.Status.ACTIVE);
 		while(Operation.Status.ACTIVE.equals(deleteTask.status())) {
 			invokeNio(deleteTask);

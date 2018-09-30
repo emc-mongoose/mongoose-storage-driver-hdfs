@@ -10,7 +10,7 @@ Load
 				}
 			},
 			"load": {
-				"step": {
+				"op": {
 					"limit": {
 						"count": TEST_STEP_LIMIT_COUNT
 					}

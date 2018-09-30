@@ -54,7 +54,7 @@ import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_UNKNOWN;
 import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
 
 public class HdfsStorageDriver<I extends Item, O extends Operation<I>>
-	extends NioStorageDriverBase<I, O> {
+extends NioStorageDriverBase<I, O> {
 
 	protected final String uriSchema;
 	protected final Configuration hadoopConfig;
@@ -127,8 +127,8 @@ public class HdfsStorageDriver<I extends Item, O extends Operation<I>>
 	}
 
 	@Override
-	protected void prepareOperation(final O operation) {
-		super.prepareOperation(operation);
+	protected void prepare(final O operation) {
+		super.prepare(operation);
 		String endpointAddr = operation.nodeAddr();
 		if(endpointAddr == null) {
 			endpointAddr = getNextEndpointAddr();

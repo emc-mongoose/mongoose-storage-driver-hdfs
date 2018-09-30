@@ -15,7 +15,7 @@ Load
 				}
 			},
 			"load": {
-				"step": {
+				"op": {
 					"limit": {
 						"count": BASE_ITEMS_COUNT
 					}
@@ -56,14 +56,11 @@ Load
 			},
 			"load": {
 				"op" : {
-					"type": "update",
-					"recycle" : true
+				"limit": {
+					"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
 				},
-				"step": {
-					"limit": {
-						"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
-					}
-                }
+				"type": "update",
+				"recycle" : true
 			}
 		}
 	)
