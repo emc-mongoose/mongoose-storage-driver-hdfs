@@ -3,12 +3,12 @@
 [![release](https://img.shields.io/github/release/emc-mongoose/mongoose-storage-driver-hdfs.svg)]()
 [![Docker Pulls](https://img.shields.io/docker/pulls/emcmongoose/mongoose-storage-driver-hdfs.svg)](https://hub.docker.com/r/emcmongoose/mongoose-storage-driver-hdfs/)
 
-[Mongoose](https://github.com/emc-mongoose/mongoose-base)'s HDFS storage
+[Mongoose](https://github.com/emc-mongoose/mongoose)'s HDFS storage
 driver
 
 # Introduction
 
-The storage driver extends the Mongoose's [Abstract NIO Storage Driver](https://github.com/emc-mongoose/mongoose-base/wiki/v4.0-Storage-Drivers#31-nio-storage-driver)
+The storage driver extends the Mongoose's Abstract NIO Storage Driver
 and uses the following libraries:
 * hadoop-common
 * hadoop-hdfs-client
