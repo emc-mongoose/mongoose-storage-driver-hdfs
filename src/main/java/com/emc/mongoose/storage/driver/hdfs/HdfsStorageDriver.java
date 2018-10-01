@@ -1,36 +1,26 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
-import com.emc.mongoose.api.common.env.Extensions;
-import com.emc.mongoose.api.common.exception.OmgShootMyFootException;
-import com.emc.mongoose.api.model.data.DataCorruptionException;
-import com.emc.mongoose.api.model.data.DataInput;
-import com.emc.mongoose.api.model.data.DataSizeException;
-import com.emc.mongoose.api.model.io.IoType;
-import com.emc.mongoose.api.model.io.task.IoTask;
-import com.emc.mongoose.api.model.io.task.data.DataIoTask;
-import com.emc.mongoose.api.model.io.task.path.PathIoTask;
-import com.emc.mongoose.api.model.item.DataItem;
-import com.emc.mongoose.api.model.item.Item;
-import com.emc.mongoose.api.model.item.ItemFactory;
-import com.emc.mongoose.api.model.item.PathItem;
-import com.emc.mongoose.api.model.storage.Credential;
-import com.emc.mongoose.storage.driver.nio.base.NioStorageDriverBase;
-import com.emc.mongoose.ui.config.load.LoadConfig;
-import com.emc.mongoose.ui.config.storage.StorageConfig;
-import com.emc.mongoose.ui.config.storage.net.node.NodeConfig;
-import com.emc.mongoose.ui.log.LogUtil;
-import com.emc.mongoose.ui.log.Loggers;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.ACTIVE;
-import static com.emc.mongoose.api.model.io.task.IoTask.Status.FAIL_IO;
-import static com.emc.mongoose.api.model.item.DataItem.getRangeCount;
-import static com.emc.mongoose.api.model.item.DataItem.getRangeOffset;
-
-import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
+import com.emc.mongoose.data.DataCorruptionException;
+import com.emc.mongoose.data.DataInput;
+import com.emc.mongoose.data.DataSizeException;
+import com.emc.mongoose.exception.OmgShootMyFootException;
+import com.emc.mongoose.item.DataItem;
+import com.emc.mongoose.item.Item;
+import com.emc.mongoose.item.ItemFactory;
+import com.emc.mongoose.item.PathItem;
+import com.emc.mongoose.item.op.OpType;
+import com.emc.mongoose.item.op.Operation;
+import com.emc.mongoose.item.op.data.DataOperation;
+import com.emc.mongoose.item.op.path.PathOperation;
+import com.emc.mongoose.logging.LogUtil;
+import com.emc.mongoose.logging.Loggers;
+import com.emc.mongoose.storage.Credential;
+import com.emc.mongoose.storage.driver.coop.nio.NioStorageDriverBase;
 import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.io.util.OutputStreamWrapperChannel;
 import com.github.akurilov.commons.system.DirectMemUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
-
+import com.github.akurilov.confuse.Config;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -39,7 +29,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
-
 import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
@@ -47,15 +36,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.rmi.RemoteException;
-import java.rmi.ServerException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class HdfsStorageDriver<I extends Item, O extends IoTask<I>>
+import static com.emc.mongoose.item.DataItem.rangeCount;
+import static com.emc.mongoose.item.DataItem.rangeOffset;
+import static com.emc.mongoose.item.op.Operation.Status.ACTIVE;
+import static com.emc.mongoose.item.op.Operation.Status.FAIL_IO;
+import static com.emc.mongoose.item.op.Operation.Status.FAIL_UNKNOWN;
+import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_AUTH;
+import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_CLIENT;
+import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_CORRUPT;
+import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_UNKNOWN;
+import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
+
+public class HdfsStorageDriver<I extends Item, O extends Operation<I>>
 extends NioStorageDriverBase<I, O> {
 
 	protected final String uriSchema;
@@ -64,40 +62,36 @@ extends NioStorageDriverBase<I, O> {
 	protected final String[] endpointAddrs;
 	protected final int nodePort;
 	private final AtomicInteger rrc = new AtomicInteger(0);
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataInputStream>
+	private final ConcurrentMap<DataOperation<? extends DataItem>, FSDataInputStream>
 		fileInputStreams = new ConcurrentHashMap<>();
-	private final ConcurrentMap<DataIoTask<? extends DataItem>, FSDataOutputStream>
+	private final ConcurrentMap<DataOperation<? extends DataItem>, FSDataOutputStream>
 		fileOutputStreams = new ConcurrentHashMap<>();
 	private final UserGroupInformation ugi;
-
 	protected int inBuffSize = BUFF_SIZE_MIN;
 	protected int outBuffSize = BUFF_SIZE_MAX;
 
 	public HdfsStorageDriver(
 		final String uriSchema, final String testStepId, final DataInput dataInput,
-		final LoadConfig loadConfig, final StorageConfig storageConfig, final boolean verifyFlag
-	) throws OmgShootMyFootException {
-
-		super(testStepId, dataInput, loadConfig, storageConfig, verifyFlag);
-
+		final Config storageConfig, final boolean verifyFlag, final int batchSize
+	)
+	throws OmgShootMyFootException {
+		super(testStepId, dataInput, storageConfig, verifyFlag, batchSize);
 		this.uriSchema = uriSchema;
 		hadoopConfig = new Configuration();
-		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+		hadoopConfig.setClassLoader(getClass().getClassLoader());
 		defaultFsPerm = FsPermission
 			.getDefault()
 			.applyUMask(FsPermission.getUMask(hadoopConfig));
-
 		final String uid = credential == null ? null : credential.getUid();
-		if(uid != null && !uid.isEmpty()) {
+		if(uid != null && ! uid.isEmpty()) {
 			ugi = UserGroupInformation.createRemoteUser(uid);
 			UserGroupInformation.setLoginUser(ugi);
 		} else {
 			ugi = null;
 		}
-
-		final NodeConfig nodeConfig = storageConfig.getNetConfig().getNodeConfig();
-		nodePort = storageConfig.getNetConfig().getNodeConfig().getPort();
-		final List<String> endpointAddrList = nodeConfig.getAddrs();
+		final Config nodeConfig = storageConfig.configVal("net-node");
+		nodePort = storageConfig.intVal("net-node-port");
+		final List<String> endpointAddrList = nodeConfig.listVal("addrs");
 		endpointAddrs = endpointAddrList.toArray(new String[endpointAddrList.size()]);
 		requestAuthTokenFunc = null; // do not use
 		requestNewPathFunc = null; // do not use
@@ -122,7 +116,7 @@ extends NioStorageDriverBase<I, O> {
 			final String uid = credential == null ? null : credential.getUid();
 			final URI endpointUri = new URI(uriSchema, uid, addr, port, "/", null, null);
 			// set the temporary thread's context classloader
-			Thread.currentThread().setContextClassLoader(Extensions.CLS_LOADER);
+			Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 			return FileSystem.get(endpointUri, hadoopConfig);
 		} catch(final URISyntaxException | IOException e) {
 			throw new RuntimeException(e);
@@ -133,13 +127,12 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	@Override
-	protected void prepareIoTask(final O ioTask)
-	throws ServerException {
-		super.prepareIoTask(ioTask);
-		String endpointAddr = ioTask.getNodeAddr();
+	protected void prepare(final O operation) {
+		super.prepare(operation);
+		String endpointAddr = operation.nodeAddr();
 		if(endpointAddr == null) {
 			endpointAddr = getNextEndpointAddr();
-			ioTask.setNodeAddr(endpointAddr);
+			operation.nodeAddr(endpointAddr);
 		}
 	}
 
@@ -152,221 +145,212 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	protected FSDataOutputStream getCreateFileStream(
-		final DataIoTask<? extends DataItem> createFileTask
+		final DataOperation<? extends DataItem> createFileTask
 	) {
-		final String dstPath = createFileTask.getDstPath();
-		final DataItem fileItem = createFileTask.getItem();
-		final String fileName = fileItem.getName();
+		final String dstPath = createFileTask.dstPath();
+		final DataItem fileItem = createFileTask.item();
+		final String fileName = fileItem.name();
 		final Path filePath = getFilePath(dstPath, fileName);
-		final FileSystem endpoint = getEndpoint(createFileTask.getNodeAddr());
+		final FileSystem endpoint = getEndpoint(createFileTask.nodeAddr());
 		try {
 			return endpoint.create(
 				filePath, defaultFsPerm, false, outBuffSize,
 				endpoint.getDefaultReplication(filePath), fileItem.size(), null
 			);
 		} catch(final IOException e) {
-			createFileTask.setStatus(FAIL_IO);
+			createFileTask.status(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
 
 	protected FSDataInputStream getReadFileStream(
-		final DataIoTask<? extends DataItem> readFileTask
+		final DataOperation<? extends DataItem> readFileTask
 	) {
-		final String srcPath = readFileTask.getSrcPath();
+		final String srcPath = readFileTask.srcPath();
 		if(srcPath == null || srcPath.isEmpty()) {
 			return null;
 		}
-		final DataItem fileItem = readFileTask.getItem();
-		final String fileName = fileItem.getName();
+		final DataItem fileItem = readFileTask.item();
+		final String fileName = fileItem.name();
 		final Path filePath = getFilePath(srcPath, fileName);
-		final FileSystem endpoint = getEndpoint(readFileTask.getNodeAddr());
+		final FileSystem endpoint = getEndpoint(readFileTask.nodeAddr());
 		try {
 			return endpoint.open(filePath, inBuffSize);
 		} catch(final IOException e) {
-			readFileTask.setStatus(FAIL_IO);
+			readFileTask.status(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
 
 	protected FSDataOutputStream getUpdateFileStream(
-		final DataIoTask<? extends DataItem> updateFileTask
+		final DataOperation<? extends DataItem> updateFileTask
 	) {
-		final String dstPath = updateFileTask.getDstPath();
-		final DataItem fileItem = updateFileTask.getItem();
-		final String fileName = fileItem.getName();
+		final String dstPath = updateFileTask.dstPath();
+		final DataItem fileItem = updateFileTask.item();
+		final String fileName = fileItem.name();
 		final Path filePath = getFilePath(dstPath, fileName);
-		final FileSystem endpoint = getEndpoint(updateFileTask.getNodeAddr());
+		final FileSystem endpoint = getEndpoint(updateFileTask.nodeAddr());
 		try {
 			return endpoint.create(
 				filePath, defaultFsPerm, true, outBuffSize,
 				endpoint.getDefaultReplication(filePath), fileItem.size(), null
 			);
 		} catch(final IOException e) {
-			updateFileTask.setStatus(FAIL_IO);
+			updateFileTask.status(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
 
 	protected FSDataOutputStream getAppendFileStream(
-		final DataIoTask<? extends DataItem> appendFileTask
+		final DataOperation<? extends DataItem> appendFileTask
 	) {
-		final String dstPath = appendFileTask.getDstPath();
-		final DataItem fileItem = appendFileTask.getItem();
-		final String fileName = fileItem.getName();
+		final String dstPath = appendFileTask.dstPath();
+		final DataItem fileItem = appendFileTask.item();
+		final String fileName = fileItem.name();
 		final Path filePath = getFilePath(dstPath, fileName);
-		final FileSystem endpoint = getEndpoint(appendFileTask.getNodeAddr());
+		final FileSystem endpoint = getEndpoint(appendFileTask.nodeAddr());
 		try {
 			return endpoint.append(filePath, outBuffSize);
 		} catch(final IOException e) {
-			appendFileTask.setStatus(FAIL_IO);
+			appendFileTask.status(FAIL_IO);
 			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	protected final void invokeNio(final O ioTask) {
-		if(ioTask instanceof DataIoTask) {
-			invokeFileNio((DataIoTask<? extends DataItem>) ioTask);
-		} else if(ioTask instanceof PathIoTask) {
-			invokeDirectoryNio((PathIoTask<? extends PathItem>) ioTask);
+	protected final void invokeNio(final O operation) {
+		if(operation instanceof DataOperation) {
+			invokeFileNio((DataOperation<? extends DataItem>) operation);
+		} else if(operation instanceof PathOperation) {
+			invokeDirectoryNio((PathOperation<? extends PathItem>) operation);
 		} else {
 			throw new AssertionError("Not implemented");
 		}
 	}
 
-	private void invokeFileNio(final DataIoTask<? extends DataItem> fileIoTask) {
-
-		final IoType ioType = fileIoTask.getIoType();
-		final DataItem fileItem = fileIoTask.getItem();
-
+	private void invokeFileNio(final DataOperation<? extends DataItem> fileOperation) {
+		final OpType opType = fileOperation.type();
+		final DataItem fileItem = fileOperation.item();
 		FSDataInputStream input = null;
 		FSDataOutputStream output = null;
-
 		try {
-			switch(ioType) {
-
+			switch(opType) {
 				case NOOP:
-					finishIoTask((O) fileIoTask);
+					finishOperation((O) fileOperation);
 					break;
-
 				case CREATE:
-					final List<? extends DataItem> srcItems = fileIoTask.getSrcItemsToConcat();
+					final List<? extends DataItem> srcItems = fileOperation.srcItemsToConcat();
 					if(srcItems != null) {
 						throw new AssertionError("Files concatenation support is not implemented");
 					} else {
 						input = fileInputStreams.computeIfAbsent(
-							fileIoTask, this::getReadFileStream
+							fileOperation, this::getReadFileStream
 						);
 						output = fileOutputStreams.computeIfAbsent(
-							fileIoTask, this::getCreateFileStream
+							fileOperation, this::getCreateFileStream
 						);
 						if(input != null) {
-							if(invokeFileCopy(fileIoTask, fileItem, input, output)) {
-								finishIoTask((O) fileIoTask);
+							if(invokeFileCopy(fileOperation, fileItem, input, output)) {
+								finishOperation((O) fileOperation);
 							}
 						} else {
-							if(invokeFileCreate(fileIoTask, fileItem, output)) {
-								finishIoTask((O) fileIoTask);
+							if(invokeFileCreate(fileOperation, fileItem, output)) {
+								finishOperation((O) fileOperation);
 							}
 						}
 					}
 					break;
-
 				case READ:
-					input = fileInputStreams.computeIfAbsent(fileIoTask, this::getReadFileStream);
-					final List<Range> fixedRangesToRead = fileIoTask.getFixedRanges();
+					input = fileInputStreams.computeIfAbsent(fileOperation, this::getReadFileStream);
+					final List<Range> fixedRangesToRead = fileOperation.fixedRanges();
 					if(verifyFlag) {
 						try {
 							if(fixedRangesToRead == null || fixedRangesToRead.isEmpty()) {
-								if(fileIoTask.hasMarkedRanges()) {
+								if(fileOperation.hasMarkedRanges()) {
 									if(
 										invokeFileReadAndVerifyRandomRanges(
-											fileIoTask, fileItem, input,
-											fileIoTask.getMarkedRangesMaskPair()
+											fileOperation, fileItem, input,
+											fileOperation.markedRangesMaskPair()
 										)
 									) {
-										finishIoTask((O) fileIoTask);
+										finishOperation((O) fileOperation);
 									}
 								} else {
-									if(invokeFileReadAndVerify(fileIoTask, fileItem, input)) {
-										finishIoTask((O) fileIoTask);
+									if(invokeFileReadAndVerify(fileOperation, fileItem, input)) {
+										finishOperation((O) fileOperation);
 									}
 								}
 							} else {
 								if(
 									invokeFileReadAndVerifyFixedRanges(
-										fileIoTask, fileItem, input, fixedRangesToRead
+										fileOperation, fileItem, input, fixedRangesToRead
 									)
 								) {
-									finishIoTask((O) fileIoTask);
+									finishOperation((O) fileOperation);
 								}
 							}
 						} catch(final DataSizeException e) {
-							fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
-							final long countBytesDone = fileIoTask.getCountBytesDone()
-								+ e.getOffset();
-							fileIoTask.setCountBytesDone(countBytesDone);
+							fileOperation.status(RESP_FAIL_CORRUPT);
+							final long countBytesDone = fileOperation.countBytesDone() + e.getOffset();
+							fileOperation.countBytesDone(countBytesDone);
 							try {
 								Loggers.MSG.debug(
 									"{}: content size mismatch, expected: {}, actual: {}",
-									fileItem.getName(), fileItem.size(), countBytesDone
+									fileItem.name(), fileItem.size(), countBytesDone
 								);
 							} catch(final IOException ignored) {
 							}
 						} catch(final DataCorruptionException e) {
-							fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CORRUPT);
-							final long countBytesDone = fileIoTask.getCountBytesDone()
-								+ e.getOffset();
-							fileIoTask.setCountBytesDone(countBytesDone);
+							fileOperation.status(RESP_FAIL_CORRUPT);
+							final long countBytesDone = fileOperation.countBytesDone() + e.getOffset();
+							fileOperation.countBytesDone(countBytesDone);
 							Loggers.MSG.debug(
 								"{}: content mismatch @ offset {}, expected: {}, actual: {} ",
-								fileItem.getName(), countBytesDone,
+								fileItem.name(), countBytesDone,
 								String.format("\"0x%X\"", (int) (e.expected & 0xFF)),
 								String.format("\"0x%X\"", (int) (e.actual & 0xFF))
 							);
 						}
 					} else {
 						if(fixedRangesToRead == null || fixedRangesToRead.isEmpty()) {
-							if(fileIoTask.hasMarkedRanges()) {
+							if(fileOperation.hasMarkedRanges()) {
 								if(
 									invokeFileReadRandomRanges(
-										fileIoTask, fileItem, input,
-										fileIoTask.getMarkedRangesMaskPair()
+										fileOperation, fileItem, input,
+										fileOperation.markedRangesMaskPair()
 									)
 								) {
-									fileIoTask.setCountBytesDone(fileIoTask.getMarkedRangesSize());
-									finishIoTask((O) fileIoTask);
+									fileOperation.countBytesDone(fileOperation.markedRangesSize());
+									finishOperation((O) fileOperation);
 								}
 							} else {
-								if(invokeFileRead(fileIoTask, fileItem, input)) {
-									finishIoTask((O) fileIoTask);
+								if(invokeFileRead(fileOperation, fileItem, input)) {
+									finishOperation((O) fileOperation);
 								}
 							}
 						} else {
 							if(
 								invokeFileReadFixedRanges(
-									fileIoTask, fileItem, input, fixedRangesToRead
+									fileOperation, fileItem, input, fixedRangesToRead
 								)
 							) {
-								finishIoTask((O) fileIoTask);
+								finishOperation((O) fileOperation);
 							}
 						}
 					}
 					break;
-
 				case UPDATE:
-					final List<Range> fixedRangesToUpdate = fileIoTask.getFixedRanges();
+					final List<Range> fixedRangesToUpdate = fileOperation.fixedRanges();
 					if(fixedRangesToUpdate == null || fixedRangesToUpdate.isEmpty()) {
-						if(fileIoTask.hasMarkedRanges()) {
+						if(fileOperation.hasMarkedRanges()) {
 							throw new AssertionError("Random byte ranges update isn't implemented");
 						} else {
 							// overwrite the file
 							output = fileOutputStreams.computeIfAbsent(
-								fileIoTask, this::getUpdateFileStream
+								fileOperation, this::getUpdateFileStream
 							);
-							if(invokeFileCreate(fileIoTask, fileItem, output)) {
-								finishIoTask((O) fileIoTask);
+							if(invokeFileCreate(fileOperation, fileItem, output)) {
+								finishOperation((O) fileOperation);
 							}
 						}
 					} else {
@@ -375,18 +359,18 @@ extends NioStorageDriverBase<I, O> {
 							if(range.getBeg() == 0 && range.getEnd() == fileItem.size() - 1) {
 								// overwrite the file
 								output = fileOutputStreams.computeIfAbsent(
-									fileIoTask, this::getUpdateFileStream
+									fileOperation, this::getUpdateFileStream
 								);
-								if(invokeFileCreate(fileIoTask, fileItem, output)) {
-									finishIoTask((O) fileIoTask);
+								if(invokeFileCreate(fileOperation, fileItem, output)) {
+									finishOperation((O) fileOperation);
 								}
 							} else if(range.getSize() > 0) {
 								// append
 								output = fileOutputStreams.computeIfAbsent(
-									fileIoTask, this::getAppendFileStream
+									fileOperation, this::getAppendFileStream
 								);
-								if(invokeFileAppend(fileIoTask, fileItem, output, range)) {
-									finishIoTask((O) fileIoTask);
+								if(invokeFileAppend(fileOperation, fileItem, output, range)) {
+									finishOperation((O) fileOperation);
 								}
 							} else {
 								throw new AssertionError(
@@ -400,60 +384,58 @@ extends NioStorageDriverBase<I, O> {
 						}
 					}
 					break;
-
 				case DELETE:
-					if(invokeFileDelete(fileIoTask)) {
-						finishIoTask((O) fileIoTask);
+					if(invokeFileDelete(fileOperation)) {
+						finishOperation((O) fileOperation);
 					}
 					break;
-
 				case LIST:
 				default:
-					throw new AssertionError("\"" + ioType + "\" operation isn't implemented");
+					throw new AssertionError("\"" + opType + "\" operation isn't implemented");
 			}
 		} catch(final IOException e) {
 			LogUtil.exception(
-				Level.DEBUG, e, "I/O failure, operation: {}, file: {}", ioType, fileItem.getName()
+				Level.DEBUG, e, "I/O failure, operation: {}, file: {}", opType, fileItem.name()
 			);
-			finishIoTask((O) fileIoTask);
-			fileIoTask.setStatus(FAIL_IO);
+			finishOperation((O) fileOperation);
+			fileOperation.status(FAIL_IO);
 		} catch(final RuntimeException e) {
 			final Throwable cause = e.getCause();
-			final long countBytesDone = fileIoTask.getCountBytesDone();
+			final long countBytesDone = fileOperation.countBytesDone();
 			if(cause instanceof AccessControlException) {
 				LogUtil.exception(
-					Level.DEBUG, cause, "Access to the file is forbidden: {}", fileItem.getName()
+					Level.DEBUG, cause, "Access to the file is forbidden: {}", fileItem.name()
 				);
 				fileItem.size(countBytesDone);
-				finishIoTask((O) fileIoTask);
-				fileIoTask.setStatus(IoTask.Status.RESP_FAIL_AUTH);
+				finishOperation((O) fileOperation);
+				fileOperation.status(RESP_FAIL_AUTH);
 			} else if(cause instanceof IOException) {
 				LogUtil.exception(
-					Level.DEBUG, cause, "Failed open the file: {}", fileItem.getName()
+					Level.DEBUG, cause, "Failed open the file: {}", fileItem.name()
 				);
 				fileItem.size(countBytesDone);
-				finishIoTask((O) fileIoTask);
-				fileIoTask.setStatus(FAIL_IO);
+				finishOperation((O) fileOperation);
+				fileOperation.status(FAIL_IO);
 			} else if(cause instanceof URISyntaxException) {
 				LogUtil.exception(Level.DEBUG, cause, "Failed to calculate the HDFS service URI");
 				fileItem.size(countBytesDone);
-				finishIoTask((O) fileIoTask);
-				fileIoTask.setStatus(IoTask.Status.RESP_FAIL_CLIENT);
+				finishOperation((O) fileOperation);
+				fileOperation.status(RESP_FAIL_CLIENT);
 			} else if(cause != null) {
 				LogUtil.exception(Level.DEBUG, cause, "Unexpected failure");
 				fileItem.size(countBytesDone);
-				finishIoTask((O) fileIoTask);
-				fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
+				finishOperation((O) fileOperation);
+				fileOperation.status(FAIL_UNKNOWN);
 			} else {
 				LogUtil.exception(Level.DEBUG, e, "Unexpected failure");
 				fileItem.size(countBytesDone);
-				finishIoTask((O) fileIoTask);
-				fileIoTask.setStatus(IoTask.Status.FAIL_UNKNOWN);
+				finishOperation((O) fileOperation);
+				fileOperation.status(FAIL_UNKNOWN);
 			}
 		} finally {
-			if(!ACTIVE.equals(fileIoTask.getStatus())) {
+			if(! ACTIVE.equals(fileOperation.status())) {
 				if(input != null) {
-					fileInputStreams.remove(fileIoTask);
+					fileInputStreams.remove(fileOperation);
 					try {
 						input.close();
 					} catch(final IOException e) {
@@ -461,7 +443,7 @@ extends NioStorageDriverBase<I, O> {
 					}
 				}
 				if(output != null) {
-					fileOutputStreams.remove(fileIoTask);
+					fileOutputStreams.remove(fileOperation);
 					try {
 						output.close();
 					} catch(final IOException e) {
@@ -472,7 +454,7 @@ extends NioStorageDriverBase<I, O> {
 		}
 	}
 
-	private void invokeDirectoryNio(final PathIoTask<? extends PathItem> dirIoTask) {
+	private void invokeDirectoryNio(final PathOperation<? extends PathItem> diroperation) {
 		throw new AssertionError("Not implemented yet");
 	}
 
@@ -487,36 +469,34 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	protected boolean invokeFileCreate(
-		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> fileOperation, final DataItem fileItem,
 		final FSDataOutputStream outputStream
-	) throws IOException {
-
+	)
+	throws IOException {
 		final long fileSize;
 		try {
 			fileSize = fileItem.size();
 		} catch(final IOException e) {
 			throw new AssertionError(e);
 		}
-		long countBytesDone = fileIoTask.getCountBytesDone();
+		long countBytesDone = fileOperation.countBytesDone();
 		final long remainingBytes = fileSize - countBytesDone;
-
 		if(remainingBytes > 0) {
 			final WritableByteChannel outputChan = OutputStreamWrapperChannel
 				.getThreadLocalInstance(outputStream, remainingBytes);
 			countBytesDone += fileItem.writeToSocketChannel(outputChan, remainingBytes);
 			outputStream.hflush();
-			fileIoTask.setCountBytesDone(countBytesDone);
+			fileOperation.countBytesDone(countBytesDone);
 		}
-
 		return remainingBytes <= 0;
 	}
 
 	protected boolean invokeFileCopy(
-		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> fileOperation, final DataItem fileItem,
 		final FSDataInputStream inputStream, final FSDataOutputStream outputStream
-	) throws IOException {
-
-		long countBytesDone = fileIoTask.getCountBytesDone();
+	)
+	throws IOException {
+		long countBytesDone = fileOperation.countBytesDone();
 		final long fileSize;
 		try {
 			fileSize = fileItem.size();
@@ -524,39 +504,37 @@ extends NioStorageDriverBase<I, O> {
 			throw new AssertionError(e);
 		}
 		final long remainingSize = fileSize - countBytesDone;
-
-		if(remainingSize > 0 && ACTIVE.equals(fileIoTask.getStatus())) {
+		if(remainingSize > 0 && ACTIVE.equals(fileOperation.status())) {
 			final byte[] buff = new byte[
 				remainingSize > REUSABLE_BUFF_SIZE_MAX ?
-					REUSABLE_BUFF_SIZE_MAX : (int) remainingSize
-			];
+				REUSABLE_BUFF_SIZE_MAX : (int) remainingSize
+				];
 			final int n = inputStream.read(buff, 0, buff.length);
 			outputStream.write(buff, 0, n);
 			outputStream.hflush();
 			countBytesDone += n;
-			fileIoTask.setCountBytesDone(countBytesDone);
+			fileOperation.countBytesDone(countBytesDone);
 		}
-
 		return countBytesDone >= fileSize;
 	}
 
 	/*protected boolean invokeFileConcat(
-		final DataIoTask<? extends DataItem> fileIoTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> fileOperation, final DataItem fileItem,
 		final List<? extends DataItem> srcItems, final FileSystem endpoint,
 		final FsPermission fsPerm
 	) throws IOException {
 
-		final String dstPath = fileIoTask.getDstPath();
+		final String dstPath = fileOperation.dstPath();
 		final int srcItemsCount = srcItems.size();
 		final Path[] srcPaths = new Path[srcItems.size()];
-		final String fileName = fileItem.getName();
+		final String fileName = fileItem.name();
 		final Path dstFilePath = driver.getFilePath(dstPath, fileName);
 		DataItem srcItem;
 		long dstItemSize = 0;
 
 		for(int i = 0; i < srcItemsCount; i ++) {
 			srcItem = srcItems.get(i);
-			srcPaths[i] = driver.getFilePath(dstPath, srcItem.getName());
+			srcPaths[i] = driver.getFilePath(dstPath, srcItem.name());
 			dstItemSize += srcItem.size();
 		}
 		endpoint
@@ -571,18 +549,17 @@ extends NioStorageDriverBase<I, O> {
 	}*/
 
 	protected boolean invokeFileReadAndVerify(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream
-
-	) throws DataSizeException, DataCorruptionException, IOException {
-		long countBytesDone = ioTask.getCountBytesDone();
+	)
+	throws DataSizeException, DataCorruptionException, IOException {
+		long countBytesDone = operation.countBytesDone();
 		final long contentSize = fileItem.size();
-
 		if(countBytesDone < contentSize) {
 			if(fileItem.isUpdated()) {
-				final DataItem currRange = ioTask.getCurrRange();
-				final int nextRangeIdx = ioTask.getCurrRangeIdx() + 1;
-				final long nextRangeOffset = getRangeOffset(nextRangeIdx);
+				final DataItem currRange = operation.currRange();
+				final int nextRangeIdx = operation.currRangeIdx() + 1;
+				final long nextRangeOffset = rangeOffset(nextRangeIdx);
 				if(currRange != null) {
 					final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
 						nextRangeOffset - countBytesDone
@@ -596,7 +573,7 @@ extends NioStorageDriverBase<I, O> {
 						currRange.position(currRange.position() + n);
 						countBytesDone += n;
 						if(countBytesDone == nextRangeOffset) {
-							ioTask.setCurrRangeIdx(nextRangeIdx);
+							operation.currRangeIdx(nextRangeIdx);
 						}
 					}
 				} else {
@@ -616,49 +593,45 @@ extends NioStorageDriverBase<I, O> {
 					countBytesDone += n;
 				}
 			}
-			ioTask.setCountBytesDone(countBytesDone);
+			operation.countBytesDone(countBytesDone);
 		}
-
 		return countBytesDone >= contentSize;
 	}
 
 	protected boolean invokeFileReadAndVerifyRandomRanges(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream, final BitSet maskRangesPair[]
-	) throws DataSizeException, DataCorruptionException, IOException {
-
-		long countBytesDone = ioTask.getCountBytesDone();
-		final long rangesSizeSum = ioTask.getMarkedRangesSize();
-
+	)
+	throws DataSizeException, DataCorruptionException, IOException {
+		long countBytesDone = operation.countBytesDone();
+		final long rangesSizeSum = operation.markedRangesSize();
 		if(rangesSizeSum > 0 && rangesSizeSum > countBytesDone) {
-
 			DataItem range2read;
 			int currRangeIdx;
 			while(true) {
-				currRangeIdx = ioTask.getCurrRangeIdx();
-				if(currRangeIdx < getRangeCount(fileItem.size())) {
+				currRangeIdx = operation.currRangeIdx();
+				if(currRangeIdx < rangeCount(fileItem.size())) {
 					if(maskRangesPair[0].get(currRangeIdx) || maskRangesPair[1].get(currRangeIdx)) {
-						range2read = ioTask.getCurrRange();
+						range2read = operation.currRange();
 						if(Loggers.MSG.isTraceEnabled()) {
 							Loggers.MSG.trace(
 								"I/O task: {}, Range index: {}, size: {}, internal position: {}, " +
 									"Done byte count: {}",
-								ioTask.toString(), currRangeIdx, range2read.size(),
+								operation.toString(), currRangeIdx, range2read.size(),
 								range2read.position(), countBytesDone
 							);
 						}
 						break;
 					} else {
-						ioTask.setCurrRangeIdx(++ currRangeIdx);
+						operation.currRangeIdx(++ currRangeIdx);
 					}
 				} else {
-					ioTask.setCountBytesDone(rangesSizeSum);
+					operation.countBytesDone(rangesSizeSum);
 					return true;
 				}
 			}
-
 			final long currRangeSize = range2read.size();
-			final long currPos = getRangeOffset(currRangeIdx) + countBytesDone;
+			final long currPos = rangeOffset(currRangeIdx) + countBytesDone;
 			inputStream.seek(currPos);
 			final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
 				currRangeSize - countBytesDone
@@ -678,71 +651,63 @@ extends NioStorageDriverBase<I, O> {
 					);
 				}
 			}
-
 			if(Loggers.MSG.isTraceEnabled()) {
 				Loggers.MSG.trace(
 					"I/O task: {}, Done bytes count: {}, Curr range size: {}",
-					ioTask.toString(), countBytesDone, range2read.size()
+					operation.toString(), countBytesDone, range2read.size()
 				);
 			}
-
 			if(countBytesDone == currRangeSize) {
-				ioTask.setCurrRangeIdx(currRangeIdx + 1);
-				ioTask.setCountBytesDone(0);
+				operation.currRangeIdx(currRangeIdx + 1);
+				operation.countBytesDone(0);
 			} else {
-				ioTask.setCountBytesDone(countBytesDone);
+				operation.countBytesDone(countBytesDone);
 			}
 		}
-
 		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
 	}
 
 	protected boolean invokeFileReadAndVerifyFixedRanges(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream, final List<Range> fixedRanges
-	) throws DataSizeException, DataCorruptionException, IOException {
-
+	)
+	throws DataSizeException, DataCorruptionException, IOException {
 		final long baseItemSize = fileItem.size();
-		final long fixedRangesSizeSum = ioTask.getMarkedRangesSize();
-
-		long countBytesDone = ioTask.getCountBytesDone();
+		final long fixedRangesSizeSum = operation.markedRangesSize();
+		long countBytesDone = operation.countBytesDone();
 		// "countBytesDone" is the current range done bytes counter here
 		long rangeBytesDone = countBytesDone;
 		long currOffset;
 		long cellOffset;
 		long cellEnd;
 		int n;
-
 		if(fixedRangesSizeSum > 0 && fixedRangesSizeSum > countBytesDone) {
-
 			Range fixedRange;
 			DataItem currRange;
-			int currFixedRangeIdx = ioTask.getCurrRangeIdx();
+			int currFixedRangeIdx = operation.currRangeIdx();
 			long fixedRangeEnd;
 			long fixedRangeSize;
-
 			if(currFixedRangeIdx < fixedRanges.size()) {
 				fixedRange = fixedRanges.get(currFixedRangeIdx);
 				currOffset = fixedRange.getBeg();
 				fixedRangeEnd = fixedRange.getEnd();
-				if(currOffset == -1) {
+				if(currOffset == - 1) {
 					// last "rangeEnd" bytes
 					currOffset = baseItemSize - fixedRangeEnd;
 					fixedRangeSize = fixedRangeEnd;
-				} else if(fixedRangeEnd == -1) {
+				} else if(fixedRangeEnd == - 1) {
 					// start @ offset equal to "rangeBeg"
 					fixedRangeSize = baseItemSize - currOffset;
 				} else {
 					fixedRangeSize = fixedRangeEnd - currOffset + 1;
 				}
-
 				// let (current offset = rangeBeg + rangeBytesDone)
 				currOffset += rangeBytesDone;
 				// find the internal data item's cell index which has:
 				// (cell's offset <= current offset) && (cell's end > current offset)
-				n = getRangeCount(currOffset + 1) - 1;
-				cellOffset = getRangeOffset(n);
-				cellEnd = Math.min(baseItemSize, getRangeOffset(n + 1));
+				n = rangeCount(currOffset + 1) - 1;
+				cellOffset = rangeOffset(n);
+				cellEnd = Math.min(baseItemSize, rangeOffset(n + 1));
 				// get the found cell data item (updated or not)
 				currRange = fileItem.slice(cellOffset, cellEnd - cellOffset);
 				if(fileItem.isRangeUpdated(n)) {
@@ -751,7 +716,6 @@ extends NioStorageDriverBase<I, O> {
 				// set the cell data item internal position to (current offset - cell's offset)
 				currRange.position(currOffset - cellOffset);
 				inputStream.seek(currOffset);
-
 				final ByteBuffer inBuff = DirectMemUtil.getThreadLocalReusableBuff(
 					Math.min(
 						fixedRangeSize - countBytesDone, currRange.size() - currRange.position()
@@ -772,32 +736,31 @@ extends NioStorageDriverBase<I, O> {
 						);
 					}
 				}
-
 				if(rangeBytesDone == fixedRangeSize) {
 					// current byte range verification is finished
 					if(currFixedRangeIdx == fixedRanges.size() - 1) {
 						// current byte range was last in the list
-						ioTask.setCountBytesDone(fixedRangesSizeSum);
+						operation.countBytesDone(fixedRangesSizeSum);
 						return true;
 					} else {
-						ioTask.setCurrRangeIdx(currFixedRangeIdx + 1);
+						operation.currRangeIdx(currFixedRangeIdx + 1);
 						rangeBytesDone = 0;
 					}
 				}
-				ioTask.setCountBytesDone(rangeBytesDone);
+				operation.countBytesDone(rangeBytesDone);
 			} else {
-				ioTask.setCountBytesDone(fixedRangesSizeSum);
+				operation.countBytesDone(fixedRangesSizeSum);
 			}
 		}
-
 		return fixedRangesSizeSum <= 0 || fixedRangesSizeSum <= countBytesDone;
 	}
 
 	protected boolean invokeFileRead(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream
-	) throws IOException {
-		long countBytesDone = ioTask.getCountBytesDone();
+	)
+	throws IOException {
+		long countBytesDone = operation.countBytesDone();
 		final long contentSize = fileItem.size();
 		int n;
 		if(countBytesDone < contentSize) {
@@ -805,95 +768,86 @@ extends NioStorageDriverBase<I, O> {
 				DirectMemUtil.getThreadLocalReusableBuff(contentSize - countBytesDone)
 			);
 			if(n < 0) {
-				ioTask.setCountBytesDone(countBytesDone);
+				operation.countBytesDone(countBytesDone);
 				fileItem.size(countBytesDone);
 				return true;
 			} else {
 				countBytesDone += n;
-				ioTask.setCountBytesDone(countBytesDone);
+				operation.countBytesDone(countBytesDone);
 			}
 		}
-
 		return countBytesDone >= contentSize;
 	}
 
 	protected boolean invokeFileReadRandomRanges(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream, final BitSet maskRangesPair[]
-	) throws IOException {
-
+	)
+	throws IOException {
 		int n;
-		long countBytesDone = ioTask.getCountBytesDone();
-		final long rangesSizeSum = ioTask.getMarkedRangesSize();
-
+		long countBytesDone = operation.countBytesDone();
+		final long rangesSizeSum = operation.markedRangesSize();
 		if(rangesSizeSum > 0 && rangesSizeSum > countBytesDone) {
-
 			DataItem range2read;
 			int currRangeIdx;
 			while(true) {
-				currRangeIdx = ioTask.getCurrRangeIdx();
-				if(currRangeIdx < getRangeCount(fileItem.size())) {
+				currRangeIdx = operation.currRangeIdx();
+				if(currRangeIdx < rangeCount(fileItem.size())) {
 					if(maskRangesPair[0].get(currRangeIdx) || maskRangesPair[1].get(currRangeIdx)) {
-						range2read = ioTask.getCurrRange();
+						range2read = operation.currRange();
 						break;
 					} else {
-						ioTask.setCurrRangeIdx(++ currRangeIdx);
+						operation.currRangeIdx(++ currRangeIdx);
 					}
 				} else {
-					ioTask.setCountBytesDone(rangesSizeSum);
+					operation.countBytesDone(rangesSizeSum);
 					return true;
 				}
 			}
-
 			final long currRangeSize = range2read.size();
-			inputStream.seek(getRangeOffset(currRangeIdx) + countBytesDone);
+			inputStream.seek(rangeOffset(currRangeIdx) + countBytesDone);
 			n = inputStream.read(
 				DirectMemUtil.getThreadLocalReusableBuff(currRangeSize - countBytesDone)
 			);
 			if(n < 0) {
-				ioTask.setCountBytesDone(countBytesDone);
+				operation.countBytesDone(countBytesDone);
 				return true;
 			}
 			countBytesDone += n;
-
 			if(countBytesDone == currRangeSize) {
-				ioTask.setCurrRangeIdx(currRangeIdx + 1);
-				ioTask.setCountBytesDone(0);
+				operation.currRangeIdx(currRangeIdx + 1);
+				operation.countBytesDone(0);
 			} else {
-				ioTask.setCountBytesDone(countBytesDone);
+				operation.countBytesDone(countBytesDone);
 			}
 		}
-
 		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
 	}
 
 	protected boolean invokeFileReadFixedRanges(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataInputStream inputStream, final List<Range> byteRanges
-	) throws IOException {
-
+	)
+	throws IOException {
 		int n;
-		long countBytesDone = ioTask.getCountBytesDone();
+		long countBytesDone = operation.countBytesDone();
 		final long baseItemSize = fileItem.size();
-		final long rangesSizeSum = ioTask.getMarkedRangesSize();
-
+		final long rangesSizeSum = operation.markedRangesSize();
 		if(rangesSizeSum > 0 && rangesSizeSum > countBytesDone) {
-
 			Range byteRange;
-			int currRangeIdx = ioTask.getCurrRangeIdx();
+			int currRangeIdx = operation.currRangeIdx();
 			long rangeBeg;
 			long rangeEnd;
 			long rangeSize;
-
 			if(currRangeIdx < byteRanges.size()) {
 				byteRange = byteRanges.get(currRangeIdx);
 				rangeBeg = byteRange.getBeg();
 				rangeEnd = byteRange.getEnd();
-				if(rangeBeg == -1) {
+				if(rangeBeg == - 1) {
 					// last "rangeEnd" bytes
 					rangeBeg = baseItemSize - rangeEnd;
 					rangeSize = rangeEnd;
-				} else if(rangeEnd == -1) {
+				} else if(rangeEnd == - 1) {
 					// start @ offset equal to "rangeBeg"
 					rangeSize = baseItemSize - rangeBeg;
 				} else {
@@ -904,66 +858,59 @@ extends NioStorageDriverBase<I, O> {
 					DirectMemUtil.getThreadLocalReusableBuff(rangeSize - countBytesDone)
 				);
 				if(n < 0) {
-					ioTask.setCountBytesDone(countBytesDone);
+					operation.countBytesDone(countBytesDone);
 					return true;
 				}
 				countBytesDone += n;
-
 				if(countBytesDone == rangeSize) {
-					ioTask.setCurrRangeIdx(currRangeIdx + 1);
-					ioTask.setCountBytesDone(0);
+					operation.currRangeIdx(currRangeIdx + 1);
+					operation.countBytesDone(0);
 				} else {
-					ioTask.setCountBytesDone(countBytesDone);
+					operation.countBytesDone(countBytesDone);
 				}
 			} else {
-				ioTask.setCountBytesDone(rangesSizeSum);
+				operation.countBytesDone(rangesSizeSum);
 			}
 		}
-
 		return rangesSizeSum <= 0 || rangesSizeSum <= countBytesDone;
 	}
 
 	protected boolean invokeFileAppend(
-		final DataIoTask<? extends DataItem> ioTask, final DataItem fileItem,
+		final DataOperation<? extends DataItem> operation, final DataItem fileItem,
 		final FSDataOutputStream outputStream, final Range appendRange
-	) throws IOException {
-
-		final long countBytesDone = ioTask.getCountBytesDone();
+	)
+	throws IOException {
+		final long countBytesDone = operation.countBytesDone();
 		final long appendSize = appendRange.getSize();
 		final long remainingSize = appendSize - countBytesDone;
 		long n;
-
 		if(remainingSize > 0) {
 			final WritableByteChannel outputChan = OutputStreamWrapperChannel
 				.getThreadLocalInstance(outputStream, remainingSize);
 			n = fileItem.writeToSocketChannel(outputChan, remainingSize);
 			outputStream.hflush();
-			ioTask.setCountBytesDone(countBytesDone + n);
+			operation.countBytesDone(countBytesDone + n);
 			fileItem.size(fileItem.size() + n);
 		}
-
 		return remainingSize <= 0;
 	}
 
-	protected boolean invokeFileDelete(final DataIoTask<? extends DataItem> fileIoTask)
+	protected boolean invokeFileDelete(final DataOperation<? extends DataItem> fileOperation)
 	throws IOException {
-
-		final String dstPath = fileIoTask.getDstPath();
-		final DataItem fileItem = fileIoTask.getItem();
-		final String itemName = fileItem.getName();
+		final String dstPath = fileOperation.dstPath();
+		final DataItem fileItem = fileOperation.item();
+		final String itemName = fileItem.name();
 		final Path filePath = getFilePath(dstPath, itemName);
 		final FileSystem endpoint = getEndpoint(getNextEndpointAddr());
-
-		if(!endpoint.delete(filePath, false)) {
+		if(! endpoint.delete(filePath, false)) {
 			Loggers.ERR.debug(
 				"Failed to delete the file {} @ {}", filePath,
 				endpoint.getCanonicalServiceName()
 			);
-			fileIoTask.startResponse();
-			fileIoTask.finishResponse();
-			fileIoTask.setStatus(IoTask.Status.RESP_FAIL_UNKNOWN);
+			fileOperation.startResponse();
+			fileOperation.finishResponse();
+			fileOperation.status(RESP_FAIL_UNKNOWN);
 		}
-
 		return true;
 	}
 
@@ -971,15 +918,15 @@ extends NioStorageDriverBase<I, O> {
 	public List<I> list(
 		final ItemFactory<I> itemFactory, final String path, final String prefix, final int idRadix,
 		final I lastPrevItem, final int count
-	) throws IOException {
+	)
+	throws IOException {
 		return ListHelper.list(
 			itemFactory, path, prefix, idRadix, lastPrevItem, count, getEndpoint(endpointAddrs[0])
 		);
 	}
 
 	@Override
-	public void adjustIoBuffers(final long avgTransferSize, final IoType ioType)
-	throws RemoteException {
+	public void adjustIoBuffers(final long avgTransferSize, final OpType opType) {
 		int size;
 		if(avgTransferSize < BUFF_SIZE_MIN) {
 			size = BUFF_SIZE_MIN;
@@ -988,10 +935,10 @@ extends NioStorageDriverBase<I, O> {
 		} else {
 			size = (int) avgTransferSize;
 		}
-		if(IoType.CREATE.equals(ioType)) {
+		if(OpType.CREATE.equals(opType)) {
 			Loggers.MSG.info("Adjust output buffer size: {}", SizeInBytes.formatFixedSize(size));
 			outBuffSize = size;
-		} else if(IoType.READ.equals(ioType)) {
+		} else if(OpType.READ.equals(opType)) {
 			Loggers.MSG.info("Adjust input buffer size: {}", SizeInBytes.formatFixedSize(size));
 			inBuffSize = size;
 		}
@@ -1002,15 +949,15 @@ extends NioStorageDriverBase<I, O> {
 	throws IOException {
 		super.doClose();
 		hadoopConfig.clear();
-		for(final FSDataInputStream input: fileInputStreams.values()) {
+		for(final FSDataInputStream input : fileInputStreams.values()) {
 			input.close();
 		}
 		fileInputStreams.clear();
-		for(final FSDataOutputStream output: fileOutputStreams.values()) {
+		for(final FSDataOutputStream output : fileOutputStreams.values()) {
 			output.close();
 		}
 		fileOutputStreams.clear();
-		for(int i = 0; i < endpointAddrs.length; i ++) {
+		for(int i = 0; i < endpointAddrs.length; i++) {
 			endpointAddrs[i] = null;
 		}
 		if(ugi != null) {

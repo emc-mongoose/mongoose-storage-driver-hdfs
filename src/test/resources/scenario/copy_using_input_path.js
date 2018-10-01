@@ -1,4 +1,4 @@
-PreconditionLoad
+Load
 	.config(
 		{
 			"item": {
@@ -9,10 +9,23 @@ PreconditionLoad
 					"path": ITEM_PATH_0
 				}
 			},
-			"test": {
-				"step": {
+			"load": {
+				"op": {
 					"limit": {
 						"count": TEST_STEP_LIMIT_COUNT
+					}
+				}
+			},
+			"output": {
+				"metrics": {
+					"average": {
+						"persist": false
+					},
+					"summary": {
+						"persist": false
+					},
+					"trace": {
+						"persist": false
 					}
 				}
 			}

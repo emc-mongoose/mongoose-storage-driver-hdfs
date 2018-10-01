@@ -5,7 +5,7 @@ apply plugin: "maven"
 apply plugin: "signing"
 
 group = "com.github.emc-mongoose"
-version = "0.1.9"
+version = "0.2.0"
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = JavaVersion.VERSION_1_8
@@ -26,64 +26,63 @@ repositories {
 ext {
 
 	depVersion = [
-		commonsJava: "1.4.1",
-		disruptor: "3.3.4",
-		dockerJava: "[3.0.13,)",
+		commonsJava: "2.1.8",
+		disruptor: "3.4.2",
+		dockerJava: "[3.0.14,)",
 		hadoop: "2.9.0",
 		log4j: "2.8.2",
-		mongoose: "3.6.2",
+		mongoose: "4.0.0"
 	]
+}
 
-	setClassPath = {
-		configurations -> [
-			configurations.runtime
-				.collect { file -> file.name }
-				.join(" "),
-		]
-		.join(" ")
+configurations {
+	provided
+	testCompile {
+		extendsFrom(compileOnly, provided)
+	}
+	all*.exclude group: "com.sun.jersey", module: "jersey-core"
+}
+
+sourceSets {
+	main {
+		compileClasspath += configurations.provided
 	}
 }
 
 configurations.all {
-	resolutionStrategy {
-		force "com.github.akurilov:java-commons:${depVersion.commonsJava}"
-	}
+	exclude module: 'slf4j-log4j12'
 }
 
 dependencies {
 
 	compileOnly(
-		"com.github.emc-mongoose:mongoose-storage-driver-nio:${depVersion.mongoose}",
-		"com.github.emc-mongoose:mongoose-ui:${depVersion.mongoose}",
+		"com.github.emc-mongoose:mongoose:${depVersion.mongoose}",
+		"com.github.emc-mongoose:mongoose-storage-driver-coop:${depVersion.mongoose}",
+		"com.github.emc-mongoose:mongoose-storage-driver-coop-nio:${depVersion.mongoose}",
 		"com.github.akurilov:java-commons:${depVersion.commonsJava}",
 		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
 	)
 
-	compile(
+	provided(
+		"commons-collections:commons-collections:3.2.2",
+		"commons-configuration:commons-configuration:1.6",
+		"commons-logging:commons-logging:1.2",
+		"com.fasterxml.woodstox:woodstox-core:5.0.3",
+		"com.google.guava:guava:19.0",
+		"com.google.protobuf:protobuf-java:2.5.0",
+		"org.apache.hadoop:hadoop-annotations:${depVersion.hadoop}",
+		"org.apache.hadoop:hadoop-auth:${depVersion.hadoop}",
+		"org.apache.hadoop:hadoop-common:${depVersion.hadoop}",
+		"org.apache.hadoop:hadoop-hdfs-client:${depVersion.hadoop}",
+		"org.apache.htrace:htrace-core4:4.1.0-incubating",
+		"org.codehaus.woodstox:stax2-api:4.1",
 		"org.glassfish.jersey.core:jersey-common:2.23.1",
 		"org.glassfish.jersey.core:jersey-server:2.23.1",
-		"org.apache.hadoop:hadoop-hdfs-client:${depVersion.hadoop}",
-	)
-
-	compile("org.apache.hadoop:hadoop-common:${depVersion.hadoop}") {
-		exclude group: "com.sun.jersey", module: "jersey-core"
-		exclude group: "com.sun.jersey", module: "jersey-server"
-		exclude group: "javax.ws.rs", module: "jsr311-api"
-	}
-
-	runtime(
-		"org.apache.logging.log4j:log4j-jul:${depVersion.log4j}",
 	)
 
 	testCompile(
 		"junit:junit:[4,)",
 		"com.github.docker-java:docker-java:${depVersion.dockerJava}",
-		"com.github.emc-mongoose:mongoose-api-metrics:${depVersion.mongoose}",
-		"com.github.emc-mongoose:mongoose-storage-driver-nio:${depVersion.mongoose}",
-		"com.github.emc-mongoose:mongoose-ui:${depVersion.mongoose}",
-		"com.github.akurilov:java-commons:${depVersion.commonsJava}",
-		"org.apache.logging.log4j:log4j-api:${depVersion.log4j}",
-		"org.apache.logging.log4j:log4j-core:${depVersion.log4j}",
 		"org.apache.commons:commons-csv:1.1",
 	)
 
@@ -107,30 +106,37 @@ test {
 	}
 }
 
+test.dependsOn += jar
+
 // travis deploy stage runs "./gradlew check" again which is unnecessary
 check.dependsOn -= test
 
 jar {
+
 	archiveName "$project.name.$extension"
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-	from configurations.runtime.collect {
-		it.isDirectory() ?
-			it :
-			(
-				it.name.contains("hadoop-common") ?
-					zipTree(it).matching {
-						exclude "**/org.apache.hadoop.fs.FileSystem"
-					} :
-					zipTree(it)
-			)
-	}
+
 	manifest {
-		attributes(
-			"Class-Path": setClassPath(configurations),
+		attributes (
 			"Implementation-Version": version,
-			"Implementation-Title": "$name"
+			"Implementation-Title": project.description,
 		)
 	}
+
+	// 1st level dependencies only
+	from configurations
+		.provided
+		.copyRecursive()
+		.setTransitive(false)
+		.collect {
+			it.name.contains("hadoop-common") ?
+				zipTree(it).matching {
+					exclude "**/org.apache.hadoop.fs.FileSystem"
+				} :
+				zipTree(it)
+		}
+
+	exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

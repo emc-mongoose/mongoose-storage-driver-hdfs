@@ -1,5 +1,0 @@
-ARG MONGOOSE_VERSION
-
-FROM emcmongoose/mongoose-storage-driver-service-base:${MONGOOSE_VERSION}
-
-ADD ["./build/libs/mongoose-storage-driver-hdfs.jar", "/opt/mongoose/ext/mongoose-storage-driver-hdfs.jar"]

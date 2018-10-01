@@ -1,28 +1,18 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.emc.mongoose.api.common.env.Extensions;
-import com.emc.mongoose.api.model.io.IoType;
+import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-import static com.emc.mongoose.api.common.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
-
 import com.github.akurilov.commons.system.SizeInBytes;
-
 import org.apache.commons.csv.CSVRecord;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
+
+import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CopyUsingInputPathTest {
 
@@ -65,9 +61,9 @@ public class CopyUsingInputPathTest {
 		}
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
-		args.add("--test-step-id=" + STEP_ID);
-		args.add("--test-scenario-file=" + hostScenarioPath);
-		args.add("--load-limit-concurrency=" + CONCURRENCY);
+		args.add("--load-step-id=" + STEP_ID);
+		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
+		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("TEST_STEP_LIMIT_COUNT", Integer.toString(TEST_STEP_LIMIT_COUNT));
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
 		EnvUtil.set("ITEM_PATH_0", ITEM_PATH_0);
@@ -92,15 +88,15 @@ public class CopyUsingInputPathTest {
 	}
 
 	@Test
-	public void testIoTraceRecords()
+	public void testOpTraceRecords()
 	throws Exception {
-		final LongAdder ioTraceRecCount = new LongAdder();
+		final LongAdder opTraceRecCount = new LongAdder();
 		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
-		hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
+		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);
-		final Consumer<CSVRecord> ioTraceRecTestFunc = ioTraceRecord -> {
-			final String nextItemPath = ioTraceRecord.get("ItemPath");
+		final Consumer<CSVRecord> OpTraceRecTestFunc = OpTraceRecord -> {
+			final String nextItemPath = OpTraceRecord.get(1);
 			try {
 				final FileStatus dstFileStatus = endpoint.getFileStatus(
 					new org.apache.hadoop.fs.Path(nextItemPath)
@@ -109,18 +105,18 @@ public class CopyUsingInputPathTest {
 					new org.apache.hadoop.fs.Path(nextItemPath.replace(ITEM_PATH_1, ITEM_PATH_0))
 				);
 				assertEquals(srcFileStatus.getLen(), dstFileStatus.getLen());
-				LogAnalyzer.testIoTraceRecord(
-					ioTraceRecord, IoType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
+				LogAnalyzer.testOpTraceRecord(
+					OpTraceRecord, OpType.CREATE.ordinal(), new SizeInBytes(srcFileStatus.getLen())
 				);
-				ioTraceRecCount.increment();
+				opTraceRecCount.increment();
 			} catch(final IOException e) {
 				fail(e.getMessage());
 			}
 		};
-		LogAnalyzer.testContainerIoTraceLogRecords(STEP_ID, ioTraceRecTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, OpTraceRecTestFunc);
 		assertEquals(
 			"There should be " + TEST_STEP_LIMIT_COUNT + " records in the I/O trace log file",
-			TEST_STEP_LIMIT_COUNT, ioTraceRecCount.sum()
+			TEST_STEP_LIMIT_COUNT, opTraceRecCount.sum()
 		);
 	}
 
@@ -128,20 +124,20 @@ public class CopyUsingInputPathTest {
 	public void testTotalMetricsLogRecords()
 	throws Exception {
 		final List<CSVRecord> totalMetricsLogRecords = LogAnalyzer
-			.getContainerMetricsTotalLogRecords(STEP_ID);
+			.getMetricsTotalLogRecords(STEP_ID);
 		assertEquals(
 			"There should be 1 total metrics records in the log file", 1,
 			totalMetricsLogRecords.size()
 		);
 		LogAnalyzer.testTotalMetricsLogRecord(
-			totalMetricsLogRecords.get(0), IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
+			totalMetricsLogRecords.get(0), OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
 		);
 	}
 
 	@Test
 	public void testMetricsLogRecords()
 	throws Exception {
-		final List<CSVRecord> metricsLogRecords = LogAnalyzer.getContainerMetricsLogRecords(
+		final List<CSVRecord> metricsLogRecords = LogAnalyzer.getMetricsLogRecords(
 			STEP_ID
 		);
 		assertTrue(
@@ -149,7 +145,7 @@ public class CopyUsingInputPathTest {
 			metricsLogRecords.size() > 0
 		);
 		LogAnalyzer.testMetricsLogRecords(
-			metricsLogRecords, IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0, 10
+			metricsLogRecords, OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0, 10
 		);
 	}
 
@@ -157,7 +153,7 @@ public class CopyUsingInputPathTest {
 	public void testSingleMetricsStdout()
 	throws Exception {
 		LogAnalyzer.testSingleMetricsStdout(
-			STD_OUTPUT.replaceAll("[\r\n]+", " "), IoType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
+			STD_OUTPUT.replaceAll("[\r\n]+", " "), OpType.CREATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
 		);
 	}
 
@@ -165,7 +161,7 @@ public class CopyUsingInputPathTest {
 	public void testFinalMetricsTableRowStdout()
 	throws Exception {
 		LogAnalyzer.testFinalMetricsTableRowStdout(
-			STD_OUTPUT, STEP_ID, IoType.CREATE, 1, CONCURRENCY, 0, 0, ITEM_DATA_SIZE
+			STD_OUTPUT, STEP_ID, OpType.CREATE, 1, CONCURRENCY, 0, 0, ITEM_DATA_SIZE
 		);
 	}
 }

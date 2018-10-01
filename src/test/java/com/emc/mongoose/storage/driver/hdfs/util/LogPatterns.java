@@ -58,9 +58,11 @@ public interface LogPatterns {
 			STD_OUT_METRICS_BW.pattern() + ";\\s+" + STD_OUT_METRICS_DUR.pattern() + ";\\s+" +
 			STD_OUT_METRICS_LAT.pattern()
 	);
+	Pattern OP_TYPE = Pattern.compile(ASCII_COLOR.pattern() + "(?<opType>[CREATDLUPNO]{4,6})\\s{0,2}"
+		+ ASCII_COLOR.pattern());
 	Pattern STD_OUT_METRICS_TABLE_ROW = Pattern.compile(
 		"\\s*(?<stepName>[\\w\\-_.,;:~=+@]{1,10})\\|(?<timestamp>[\\d]{12})" +
-			"\\|" + ASCII_COLOR.pattern() + "(?<ioType>[NOPCREATDULIS]{4,6})\\s*" + ASCII_COLOR.pattern() +
+			"\\|" + OP_TYPE.pattern() +
 			"\\|\\s*(?<concurrencyCurr>[\\d]{1,10})" +
 			"\\|(?<concurrencyLastMean>[\\d]+\\.?[\\d]*)\\s*" +
 			"\\|\\s*(?<succCount>[\\d]{1,12})" +

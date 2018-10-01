@@ -1,30 +1,20 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.github.akurilov.commons.system.SizeInBytes;
-
-import com.emc.mongoose.api.model.io.IoType;
+import com.emc.mongoose.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
-import static com.emc.mongoose.api.common.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
-
+import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.math3.stat.Frequency;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,14 +24,18 @@ import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
+import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class CircularAppendTest {
 
-	private static final String SCENARIO_FILE = "scenario" + File.separator
-		+ "circular_append.js";
-	private static final String ITEM_LIST_FILE_0 = CONTAINER_SHARE_PATH + File.separator
-		+ "circular_append_items_0.csv";
-	private static final String ITEM_LIST_FILE_1 = CONTAINER_SHARE_PATH + File.separator
-		+ "circular_append_items_1.csv";
+	private static final String SCENARIO_FILE = "scenario" + "/" + "circular_append.js";
+	private static final String ITEM_LIST_FILE_0 = CONTAINER_SHARE_PATH + "/" + "circular_append_items_0.csv";
+	private static final String ITEM_LIST_FILE_1 = CONTAINER_SHARE_PATH + "/" + "circular_append_items_1.csv";
 	private static final String ITEM_OUTPUT_PATH = "/" + CircularAppendTest.class.getSimpleName();
 	private static final String STEP_ID = CircularAppendTest.class.getSimpleName();
 	private static final int BASE_ITEMS_COUNT = 10;
@@ -68,10 +62,10 @@ public class CircularAppendTest {
 		}
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
-		args.add("--test-step-id=" + STEP_ID);
-		args.add("--test-scenario-file=" + hostScenarioPath);
-		args.add("--load-limit-concurrency=" + CONCURRENCY);
 		args.add("--item-output-path=" + ITEM_OUTPUT_PATH);
+		args.add("--load-step-id=" + STEP_ID);
+		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
+		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("BASE_ITEMS_COUNT", Integer.toString(BASE_ITEMS_COUNT));
 		EnvUtil.set("APPEND_COUNT", Integer.toString(APPEND_COUNT));
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
@@ -105,7 +99,7 @@ public class CircularAppendTest {
 			metricsLogRecords.size() > 0
 		);
 		LogAnalyzer.testMetricsLogRecords(
-			metricsLogRecords, IoType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE,
+			metricsLogRecords, OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE,
 			BASE_ITEMS_COUNT * APPEND_COUNT, 0, 10
 		);
 	}
@@ -121,7 +115,7 @@ public class CircularAppendTest {
 			totalMetrcisLogRecords.size()
 		);
 		LogAnalyzer.testTotalMetricsLogRecord(
-			totalMetrcisLogRecords.get(0), IoType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
+			totalMetrcisLogRecords.get(0), OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 0, 0
 		);
 	}
 
@@ -129,23 +123,23 @@ public class CircularAppendTest {
 	public void testSingleMetricsStdout()
 	throws Exception {
 		LogAnalyzer.testSingleMetricsStdout(
-			STD_OUTPUT.replaceAll("[\r\n]+", " "), IoType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
+			STD_OUTPUT.replaceAll("[\r\n]+", " "), OpType.UPDATE, CONCURRENCY, 1, ITEM_DATA_SIZE, 10
 		);
 	}
 
 	@Test
-	public void testIoTraceLogRecords()
+	public void testOpTraceLogRecords()
 	throws Exception {
-		final LongAdder ioTraceRecCount = new LongAdder();
+		final LongAdder opTraceRecCount = new LongAdder();
 		final Consumer<CSVRecord> ioTraceReqTestFunc = ioTraceRec -> {
-			LogAnalyzer.testIoTraceRecord(ioTraceRec, IoType.UPDATE.ordinal(), ITEM_DATA_SIZE);
-			ioTraceRecCount.increment();
+			LogAnalyzer.testOpTraceRecord(ioTraceRec, OpType.UPDATE.ordinal(), ITEM_DATA_SIZE);
+			opTraceRecCount.increment();
 		};
-		LogAnalyzer.testIoTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
+		LogAnalyzer.testOpTraceLogRecords(STEP_ID, ioTraceReqTestFunc);
 		assertTrue(
 			"There should be more than " + BASE_ITEMS_COUNT +
-				" records in the I/O trace log file, but got: " + ioTraceRecCount.sum(),
-			BASE_ITEMS_COUNT < ioTraceRecCount.sum()
+				" records in the I/O trace log file, but got: " + opTraceRecCount.sum(),
+			BASE_ITEMS_COUNT < opTraceRecCount.sum()
 		);
 	}
 

@@ -3,19 +3,19 @@
 [![release](https://img.shields.io/github/release/emc-mongoose/mongoose-storage-driver-hdfs.svg)]()
 [![Docker Pulls](https://img.shields.io/docker/pulls/emcmongoose/mongoose-storage-driver-hdfs.svg)](https://hub.docker.com/r/emcmongoose/mongoose-storage-driver-hdfs/)
 
-[Mongoose](https://github.com/emc-mongoose/mongoose-base)'s HDFS storage
+[Mongoose](https://github.com/emc-mongoose/mongoose)'s HDFS storage
 driver
 
 # Introduction
 
-The storage driver extends the Mongoose's [Abstract NIO Storage Driver](https://github.com/emc-mongoose/mongoose-base/wiki/v3.6-Extensions#22-nio-storage-driver)
+The storage driver extends the Mongoose's Abstract NIO Storage Driver
 and uses the following libraries:
 * hadoop-common
 * hadoop-hdfs-client
 
 # Features
 
-* Authentification: login, Kerberos
+* Authentification: simple
 * SSL/TLS - TODO
 * Item types:
     * `data`
@@ -45,13 +45,13 @@ and uses the following libraries:
 
 # Usage
 
-Latest stable pre-built jar file is available at:
-https://github.com/emc-mongoose/mongoose-storage-driver-hdfs/releases/download/0.1.8/mongoose-storage-driver-hdfs.jar
-This jar file may be downloaded manually and placed into the `ext`
+Get the latest pre-built jar file which is available at:
+http://repo.maven.apache.org/maven2/com/github/emc-mongoose/mongoose-storage-driver-hdfs/
+The jar file may be downloaded manually and placed into the `<USER_HOME_DIR>/.mongoose/<VERSION>/ext`
 directory of Mongoose to be automatically loaded into the runtime.
 
 ```bash
-java -jar mongoose-<VERSION>/mongoose.jar \
+java -jar mongoose-<VERSION>.jar \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
@@ -66,10 +66,7 @@ java -jar mongoose-<VERSION>/mongoose.jar \
 ```bash
 docker run \
     --network host \
-    --entrypoint mongoose \
     emcmongoose/mongoose-storage-driver-hdfs \
-    -jar /opt/mongoose/mongoose.jar \
-    --storage-type=hdfs \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
     --storage-auth-uid=<USER_ID> \
@@ -78,26 +75,23 @@ docker run \
 
 ### Distributed
 
-#### Drivers
+#### Additional Node
 
 ```bash
 docker run \
     --network host \
     --expose 1099 \
-    emcmongoose/mongoose-storage-driver-service-hdfs
+    emcmongoose/mongoose-storage-driver-hdfs
+    --run-node
 ```
 
-#### Controller
+#### Entry Node
 
 ```bash
 docker run \
     --network host \
-    --entrypoint mongoose \
-    emcmongoose/mongoose-base \
-    -jar /opt/mongoose/mongoose.jar \
-    --storage-driver-remote \
-    --storage-driver-addrs=<ADDR1,ADDR2,...> \
-    --storage-driver-type=hdfs \
+    emcmongoose/mongoose-storage-driver-hdfs \
+    --load-step-node-addrs=<ADDR1,ADDR2,...> \
     --storage-net-node-addrs=<NODE_IP_ADDRS> \
     --storage-net-node-port=<NODE_PORT> \
     --storage-auth-uid=<USER_ID> \
@@ -154,16 +148,16 @@ either use the Docker image with HDFS support.
 
 5. Run some Mongoose test, for example:
 ```bash
-java -jar mongoose-<VER>/mongoose.jar \
+java -jar mongoose-<VERSION>.jar \
     --item-data-size=64MB \
     --item-output-file=hdfs.files.csv \
     --item-output-path=/test \
-    --load-limit-concurrency=10 \
+    --load-op-limit-count=100 \
     --storage-auth-uid=root \
+    --storage-driver-limit-concurrency=10 \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<HADOOP_NAME_NODE_IP_ADDR> \
-    --storage-net-node-port=9000 \
-    --test-step-limit-count=100
+    --storage-net-node-port=9000
 ```
 
 ### Operations
