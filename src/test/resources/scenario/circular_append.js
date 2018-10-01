@@ -56,8 +56,9 @@ Load
 			},
 			"load": {
 				"op" : {
-				"limit": {
-					"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
+					"limit": {
+						"count": ~~(BASE_ITEMS_COUNT * APPEND_COUNT)
+					}
 				},
 				"type": "update",
 				"recycle" : true
