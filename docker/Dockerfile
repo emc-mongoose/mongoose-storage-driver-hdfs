@@ -11,6 +11,7 @@ ADD docker/entrypoint-storage-driver-hdfs-debug.sh /opt/mongoose/entrypoint-stor
 RUN mkdir $HOME/.mongoose/${MONGOOSE_VERSION}; \
     mkdir $HOME/.mongoose/${MONGOOSE_VERSION}/ext; \
     ln -s /opt/mongoose/mongoose-storage-driver-hdfs.jar $HOME/.mongoose/${MONGOOSE_VERSION}/ext/mongoose-storage-driver-hdfs.jar; \
-    chmod +x /opt/mongoose/entrypoint-storage-driver-hdfs.sh
+    chmod +x /opt/mongoose/entrypoint-storage-driver-hdfs.sh; \
+    chmod +x /opt/mongoose/entrypoint-storage-driver-hdfs-debug.sh
 
 ENTRYPOINT ["/opt/mongoose/entrypoint-storage-driver-hdfs.sh"]
