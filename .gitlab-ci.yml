@@ -11,7 +11,7 @@ services:
 
 stages:
   - build
-  - test # unit/integration tests
+  - test
   - deploy
 
 before_script:
@@ -25,18 +25,18 @@ build:
     paths:
     - build/libs/mongoose-storage-driver-emc-s3.jar
 
-test_integration:
-  stage: test
-  script:
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
-
-test_acceptance:
-  stage: test
-  script:
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - ./gradlew clean jar
-    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
+#test_integration:
+#  stage: test
+#  script:
+#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
+#
+#test_acceptance:
+#  stage: test
+#  script:
+#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+#    - ./gradlew clean jar
+#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
 
 deploy_docker_image:
   stage: deploy
