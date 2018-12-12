@@ -43,5 +43,5 @@ deploy_docker_image:
   script:
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
     - ./gradlew jar
-    - docker build --build-arg MONGOOSE_VERSION=latest -f docker/Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHA} .
+    - docker build --build-arg MONGOOSE_VERSION=4.1.0 -f docker/Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHA} .
     - docker push ${IMAGE_NAME}:${CI_COMMIT_SHA}
