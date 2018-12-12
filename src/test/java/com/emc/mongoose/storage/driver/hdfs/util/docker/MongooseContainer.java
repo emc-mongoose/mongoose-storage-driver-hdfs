@@ -9,6 +9,7 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Frame;
+import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.BuildImageResultCallback;
@@ -147,13 +148,16 @@ public class MongooseContainer
 				env[i] = env[i] + "=" + envMap.get(env[i]);
 			}
 		}
+		final HostConfig hostConfig = HostConfig
+			.newHostConfig()
+			.withNetworkMode("host")
+			.withBinds(binds);
 		final CreateContainerResponse container = dockerClient
 			.createContainerCmd(testingImageId)
 			.withName("mongoose")
-			.withNetworkMode("host")
+			.withHostConfig(hostConfig)
 			.withExposedPorts(ExposedPort.tcp(9010), ExposedPort.tcp(5005))
 			.withVolumes(volumeShare, volumeLog)
-			.withBinds(binds)
 			.withAttachStdout(true)
 			.withAttachStderr(true)
 			.withEntrypoint("/opt/mongoose/entrypoint-storage-driver-hdfs.sh")

@@ -3,6 +3,7 @@ package com.emc.mongoose.storage.driver.hdfs.util.docker;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
+import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 
@@ -33,7 +34,7 @@ implements Closeable {
 		final CreateContainerResponse container = DOCKER_CLIENT
 			.createContainerCmd(IMAGE_NAME)
 			.withName("hdfs_node")
-			.withNetworkMode("host")
+			.withHostConfig(HostConfig.newHostConfig().withNetworkMode("host"))
 			.withAttachStderr(true)
 			.withAttachStdout(true)
 			.exec();
