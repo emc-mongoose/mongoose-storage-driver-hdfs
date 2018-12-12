@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import static com.emc.mongoose.Constants.APP_NAME;
 import static com.emc.mongoose.Constants.USER_HOME;
 import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 
 public class MongooseContainer
 	implements Runnable, Closeable {
@@ -113,6 +114,7 @@ public class MongooseContainer
 		final String testingImageId = buildImageResultCallback.awaitImageId();
 		LOG.info("Build mongoose testing image id: " + testingImageId);
 		this.configArgs.add("--output-metrics-trace-persist=true");
+		this.configArgs.add("--storage-net-node-addrs=" + ENV_SVC_HOST);
 		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
 		for(final String configArg : configArgs) {
 			if(configArg.startsWith("--run-scenario=")) {

@@ -37,6 +37,7 @@ import java.util.stream.IntStream;
 
 import static com.emc.mongoose.Constants.APP_NAME;
 import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -94,7 +95,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", Collections.singletonList("127.0.0.1"));
+			config.val("storage-net-node-addrs", Collections.singletonList(ENV_SVC_HOST));
 			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
