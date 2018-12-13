@@ -26,17 +26,17 @@ build:
     paths:
     - build/libs/mongoose-storage-driver-hdfs.jar
 
-test_integration:
-  stage: test_integration
-  before_script:
-    - apk add --no-cache --update openjdk8
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-  script:
-    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
-  artifacts:
-    paths:
-      - build/reports/tests/test/*
-    when: on_failure
+#test_integration:
+#  stage: test_integration
+#  before_script:
+#    - apk add --no-cache --update openjdk8
+#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+#  script:
+#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
+#  artifacts:
+#    paths:
+#      - build/reports/tests/test/*
+#    when: on_failure
 
 build_docker_image:
   stage: build_docker_image
@@ -50,19 +50,19 @@ build_docker_image:
     paths:
       - ${IMAGE_FILE_NAME}
 
-test_acceptance:
-  stage: test_acceptance
-  before_script:
-    - apk add --no-cache --update openjdk8
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - docker load < ${IMAGE_FILE_NAME}
-    - export IMAGE_VERSION=${CI_COMMIT_SHA}
-  script:
-    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
-  artifacts:
-    paths:
-      - build/reports/tests/test/*
-    when: on_failure
+#test_acceptance:
+#  stage: test_acceptance
+#  before_script:
+#    - apk add --no-cache --update openjdk8
+#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+#    - docker load < ${IMAGE_FILE_NAME}
+#    - export IMAGE_VERSION=${CI_COMMIT_SHA}
+#  script:
+#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
+#  artifacts:
+#    paths:
+#      - build/reports/tests/test/*
+#    when: on_failure
 
 deploy_to_maven_repo:
   stage: deploy
@@ -70,7 +70,6 @@ deploy_to_maven_repo:
     - echo TODO
   only:
     - tags
-    - master
 
 deploy_to_docker_hub:
   stage: deploy
@@ -83,4 +82,3 @@ deploy_to_docker_hub:
     - docker push ${IMAGE_NAME}:latest
   only:
     - tags
-    - master
