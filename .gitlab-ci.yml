@@ -54,7 +54,7 @@ publish_docker_image:
 
 test_acceptance:
   extends: .using_docker_image
-  stage: test_aceeptance
+  stage: test_acceptance
   script:
     - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
   artifacts:
