@@ -65,8 +65,9 @@ test_acceptance:
     when: on_failure
 
 deploy_to_maven_repo:
-  # TODO
   stage: deploy
+  script: # TODO
+    - echo TODO
   only:
     - tags
     - master
