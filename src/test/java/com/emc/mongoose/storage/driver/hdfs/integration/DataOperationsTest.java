@@ -95,7 +95,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", Collections.singletonList(ENV_SVC_HOST));
+			config.val("storage-net-node-addrs", "127.0.0.1"/*Collections.singletonList(ENV_SVC_HOST)*/);
 			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
