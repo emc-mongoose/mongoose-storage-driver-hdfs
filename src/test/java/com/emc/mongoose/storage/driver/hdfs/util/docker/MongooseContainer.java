@@ -6,6 +6,7 @@ import com.github.akurilov.confuse.SchemaProvider;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Frame;
@@ -13,6 +14,7 @@ import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.BuildImageResultCallback;
+import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
 import java.io.Closeable;
@@ -34,11 +36,11 @@ import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 
 public class MongooseContainer
-	implements Runnable, Closeable {
+implements Runnable, Closeable {
 
 	private static final Logger LOG = Logger.getLogger(MongooseContainer.class.getSimpleName());
-	private static final String BASE_DIR = new File("").getAbsolutePath();
 	private static final String APP_VERSION;
+	private static final String IMAGE_NAME = "emcmongoose/mongoose-storage-driver-hdfs";
 
 	static {
 		final Config bundledDefaults;
@@ -95,24 +97,20 @@ public class MongooseContainer
 		return containerExitCode;
 	}
 
-	public MongooseContainer(final List<String> configArgs, final int durationLimitSeconds) {
+	public MongooseContainer(final List<String> configArgs, final int durationLimitSeconds)
+	throws InterruptedException {
 		this.durationLimitSeconds = durationLimitSeconds;
 		this.dockerClient = DockerClientBuilder.getInstance().build();
-		final File dockerBuildFile = Paths
-			.get(BASE_DIR, "docker", "Dockerfile")
-			.toFile();
-		LOG.info("Build mongoose image w/ HDFS support using the dockerfile " + dockerBuildFile);
-		final BuildImageResultCallback buildImageResultCallback = new BuildImageResultCallback();
-		this.dockerClient
-			.buildImageCmd()
-			.withBaseDirectory(new File(BASE_DIR))
-			.withDockerfile(dockerBuildFile)
-			.withBuildArg("MONGOOSE_VERSION", APP_VERSION)
-			.withPull(true)
-			.withTags(Collections.singleton("emcmongoose/mongoose-storage-driver-hdfs:testing"))
-			.exec(buildImageResultCallback);
-		final String testingImageId = buildImageResultCallback.awaitImageId();
-		LOG.info("Build mongoose testing image id: " + testingImageId);
+		final String imageVersion = System.getenv("MONGOOSE_VERSION");
+		final String imageId = IMAGE_NAME + ":" + (imageVersion == null ? "latest" : imageVersion);
+		try {
+			dockerClient.inspectImageCmd(imageId).exec();
+		} catch(final NotFoundException e) {
+			dockerClient
+				.pullImageCmd(imageId)
+				.exec(new PullImageResultCallback())
+				.awaitCompletion();
+		}
 		this.configArgs.add("--output-metrics-trace-persist=true");
 		this.configArgs.add("--storage-net-node-addrs=" + ENV_SVC_HOST);
 		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
@@ -155,7 +153,7 @@ public class MongooseContainer
 			.withNetworkMode("host")
 			.withBinds(binds);
 		final CreateContainerResponse container = dockerClient
-			.createContainerCmd(testingImageId)
+			.createContainerCmd(imageId)
 			.withName("mongoose")
 			.withHostConfig(hostConfig)
 			.withExposedPorts(ExposedPort.tcp(9010), ExposedPort.tcp(5005))

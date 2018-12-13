@@ -72,6 +72,8 @@ public class CopyUsingInputPathTest {
 		try {
 			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
+		} catch(final InterruptedException e) {
+			throw e;
 		} catch(final Exception e) {
 			throw new AssertionError(e);
 		}

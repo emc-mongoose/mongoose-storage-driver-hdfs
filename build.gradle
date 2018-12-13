@@ -31,8 +31,12 @@ ext {
 		dockerJava: "[3.0.14,)",
 		hadoop: "2.9.0",
 		log4j: "2.8.2",
-		mongoose: "4.1.0"
+		mongoose: "4.1.0" // don't change the name of this dependency as far as it reused in the .gitlab-ci.yml
 	]
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = "5.0"
 }
 
 configurations {

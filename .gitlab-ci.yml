@@ -11,6 +11,7 @@ services:
 
 stages:
   - build
+  - publish_docker_image
   - test
   - deploy
 
@@ -23,25 +24,26 @@ build:
     - ./gradlew jar
   artifacts:
     paths:
-    - build/libs/mongoose-storage-driver-emc-s3.jar
+    - build/libs/mongoose-storage-driver-hdfs.jar
 
-#test_integration:
-#  stage: test
-#  script:
-#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
-#
-#test_acceptance:
-#  stage: test
-#  script:
-#    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-#    - ./gradlew clean jar
-#    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
-
-deploy_docker_image:
-  stage: deploy
+publish_docker_image:
+  stage: publish_docker_image
   script:
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - ./gradlew jar
-    - docker build --build-arg MONGOOSE_VERSION=4.1.0 -f docker/Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHA} .
+    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    - docker build --build-arg MONGOOSE_VERSION=${MONGOOSE_VERSION} -f docker/Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHA} .
     - docker push ${IMAGE_NAME}:${CI_COMMIT_SHA}
+
+test_integration:
+  stage: test
+  script:
+    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
+
+test_acceptance:
+  stage: test
+  script:
+    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
