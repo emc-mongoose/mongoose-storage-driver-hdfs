@@ -3,7 +3,6 @@ image: docker:stable
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://docker:2375
-  BASE_IMAGE_NAME: emcmongoose/mongoose
   IMAGE_NAME: emcmongoose/mongoose-storage-driver-hdfs
 
 services:
@@ -11,8 +10,9 @@ services:
 
 stages:
   - build
+  - test_integration
   - publish_docker_image
-  - test
+  - test_acceptance
   - deploy
 
 before_script:
@@ -26,24 +26,38 @@ build:
     paths:
     - build/libs/mongoose-storage-driver-hdfs.jar
 
+.using_docker:
+  before_script:
+    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+
+test_integration:
+  extends: .using_docker
+  stage: test_integration
+  script:
+  - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
+  artifacts:
+    paths:
+    - build/reports/tests/test/*
+    when: on_failure
+
+.using_docker_image:
+  extends: .using_docker
+  before_script:
+    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+
 publish_docker_image:
+  extends: .using_docker_image
   stage: publish_docker_image
   script:
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - docker build --build-arg MONGOOSE_VERSION=${MONGOOSE_VERSION} -f docker/Dockerfile -t ${IMAGE_NAME}:${CI_COMMIT_SHA} .
     - docker push ${IMAGE_NAME}:${CI_COMMIT_SHA}
 
-test_integration:
-  stage: test
-  script:
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
-    - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*"
-
 test_acceptance:
-  stage: test
+  extends: .using_docker_image
+  stage: test_aceeptance
   script:
-    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - export MONGOOSE_VERSION=$(cat build.gradle | grep "mongoose:" | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
+  artifacts:
+    paths:
+    - build/reports/tests/test/*
+    when: on_failure
