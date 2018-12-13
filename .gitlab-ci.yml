@@ -56,7 +56,7 @@ test_acceptance:
     - apk add --no-cache --update openjdk8
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
     - docker load < ${IMAGE_FILE_NAME}
-    - export MONGOOSE_IMAGE_VERSION=${CI_COMMIT_SHA}
+    - export IMAGE_VERSION=${CI_COMMIT_SHA}
   script:
     - "./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.*"
   artifacts:
