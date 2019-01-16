@@ -5,7 +5,7 @@ apply plugin: "maven"
 apply plugin: "signing"
 
 group = "com.github.emc-mongoose"
-version = "0.2.2"
+version = "0.2.3"
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = JavaVersion.VERSION_1_8
@@ -31,7 +31,7 @@ ext {
 		dockerJava: "[3.0.14,)",
 		hadoop: "2.9.0",
 		log4j: "2.8.2",
-		mongoose: "4.1.0" // don't change the name of this dependency as far as it reused in the .gitlab-ci.yml
+		mongoose: "4.1.1" // don't change the name of this dependency as far as it reused in the .gitlab-ci.yml
 	]
 }
 
