@@ -1,6 +1,6 @@
 package com.emc.mongoose.storage.driver.hdfs.system;
 
-import com.emc.mongoose.item.op.OpType;
+import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
-import static com.emc.mongoose.Constants.MIB;
+import static com.emc.mongoose.base.Constants.MIB;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.CONTAINER_SHARE_PATH;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer.HOST_SHARE_PATH;
 import static org.junit.Assert.assertEquals;

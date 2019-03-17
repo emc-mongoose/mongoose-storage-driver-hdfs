@@ -1,13 +1,12 @@
 package com.emc.mongoose.storage.driver.hdfs.integration;
 
-import com.emc.mongoose.data.DataInput;
-import com.emc.mongoose.env.Extension;
-import com.emc.mongoose.exception.OmgShootMyFootException;
-import com.emc.mongoose.item.DataItem;
-import com.emc.mongoose.item.DataItemFactoryImpl;
-import com.emc.mongoose.item.Item;
-import com.emc.mongoose.item.ItemFactory;
-import com.emc.mongoose.storage.Credential;
+import com.emc.mongoose.base.data.DataInput;
+import com.emc.mongoose.base.env.Extension;
+import com.emc.mongoose.base.item.DataItem;
+import com.emc.mongoose.base.item.DataItemFactoryImpl;
+import com.emc.mongoose.base.item.Item;
+import com.emc.mongoose.base.item.ItemFactory;
+import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
@@ -23,15 +22,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.emc.mongoose.Constants.APP_NAME;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
+import static com.emc.mongoose.base.Constants.APP_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -106,12 +103,12 @@ extends HdfsStorageDriver {
 	}
 
 	public CommonTest()
-	throws OmgShootMyFootException {
+	throws Exception {
 		this(getConfig());
 	}
 
 	private CommonTest(final Config config)
-	throws OmgShootMyFootException {
+	throws Exception {
 		super(
 			"hdfs", "test-common-hdfs-driver", DATA_INPUT,
 			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
@@ -164,8 +161,7 @@ extends HdfsStorageDriver {
 					final Path dstFilePath = new Path(parentDirPath, fileName);
 					try(
 						final FSDataOutputStream dstFileOutput = fs.create(
-							dstFilePath, defaultFsPerm, false, BUFF_SIZE_MIN, (short) 1, fileSize,
-							null
+							dstFilePath, defaultFsPerm, false, BUFF_SIZE_MIN, (short) 1, fileSize, null
 						)
 					) {
 						dstFileOutput.write(fileContent);
@@ -180,9 +176,7 @@ extends HdfsStorageDriver {
 			.count();
 
 		final ItemFactory<DataItem> dataItemFactory = new DataItemFactoryImpl<>();
-		final List<DataItem> listedItems = list(
-			dataItemFactory, parentDirPath, null, 10, null, fileCount
-		);
+		final List<DataItem> listedItems = list(dataItemFactory, parentDirPath, null, 10, null, fileCount);
 
 		assertEquals(fileCount, listedItems.size());
 		n = listedItems

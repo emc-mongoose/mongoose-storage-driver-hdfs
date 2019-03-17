@@ -1,6 +1,6 @@
 package com.emc.mongoose.storage.driver.hdfs.util.docker;
 
-import com.emc.mongoose.config.BundledDefaultsProvider;
+import com.emc.mongoose.base.config.BundledDefaultsProvider;
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
 import com.github.dockerjava.api.DockerClient;
@@ -13,7 +13,6 @@ import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.core.command.BuildImageResultCallback;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
@@ -24,15 +23,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import static com.emc.mongoose.Constants.APP_NAME;
-import static com.emc.mongoose.Constants.USER_HOME;
-import static com.emc.mongoose.config.CliArgUtil.ARG_PATH_SEP;
+import static com.emc.mongoose.base.Constants.APP_NAME;
+import static com.emc.mongoose.base.Constants.USER_HOME;
+import static com.emc.mongoose.base.config.CliArgUtil.ARG_PATH_SEP;
 import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 
 public class MongooseContainer

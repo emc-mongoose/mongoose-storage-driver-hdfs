@@ -1,15 +1,14 @@
 package com.emc.mongoose.storage.driver.hdfs.integration;
 
-import com.emc.mongoose.data.DataInput;
-import com.emc.mongoose.env.Extension;
-import com.emc.mongoose.exception.OmgShootMyFootException;
-import com.emc.mongoose.item.DataItem;
-import com.emc.mongoose.item.DataItemImpl;
-import com.emc.mongoose.item.op.OpType;
-import com.emc.mongoose.item.op.Operation;
-import com.emc.mongoose.item.op.data.DataOperation;
-import com.emc.mongoose.item.op.data.DataOperationImpl;
-import com.emc.mongoose.storage.Credential;
+import com.emc.mongoose.base.data.DataInput;
+import com.emc.mongoose.base.env.Extension;
+import com.emc.mongoose.base.item.DataItem;
+import com.emc.mongoose.base.item.DataItemImpl;
+import com.emc.mongoose.base.item.op.OpType;
+import com.emc.mongoose.base.item.op.Operation;
+import com.emc.mongoose.base.item.op.data.DataOperation;
+import com.emc.mongoose.base.item.op.data.DataOperationImpl;
+import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.Range;
@@ -35,9 +34,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.emc.mongoose.Constants.APP_NAME;
-import static com.emc.mongoose.Constants.MIB;
-import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
+import static com.emc.mongoose.base.Constants.APP_NAME;
+import static com.emc.mongoose.base.Constants.MIB;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -112,12 +110,12 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 	}
 
 	public DataOperationsTest()
-	throws OmgShootMyFootException {
+	throws Exception {
 		this(getConfig());
 	}
 
 	private DataOperationsTest(final Config config)
-	throws OmgShootMyFootException {
+	throws Exception {
 		super(
 			"hdfs", "test-data-hdfs-driver", DATA_INPUT,
 			config.configVal("storage"), true, config.configVal("load").intVal("batch-size")

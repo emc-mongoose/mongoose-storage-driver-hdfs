@@ -1,20 +1,20 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
-import com.emc.mongoose.data.DataCorruptionException;
-import com.emc.mongoose.data.DataInput;
-import com.emc.mongoose.data.DataSizeException;
-import com.emc.mongoose.exception.OmgShootMyFootException;
-import com.emc.mongoose.item.DataItem;
-import com.emc.mongoose.item.Item;
-import com.emc.mongoose.item.ItemFactory;
-import com.emc.mongoose.item.PathItem;
-import com.emc.mongoose.item.op.OpType;
-import com.emc.mongoose.item.op.Operation;
-import com.emc.mongoose.item.op.data.DataOperation;
-import com.emc.mongoose.item.op.path.PathOperation;
-import com.emc.mongoose.logging.LogUtil;
-import com.emc.mongoose.logging.Loggers;
-import com.emc.mongoose.storage.Credential;
+import com.emc.mongoose.base.config.IllegalConfigurationException;
+import com.emc.mongoose.base.data.DataCorruptionException;
+import com.emc.mongoose.base.data.DataInput;
+import com.emc.mongoose.base.data.DataSizeException;
+import com.emc.mongoose.base.item.DataItem;
+import com.emc.mongoose.base.item.Item;
+import com.emc.mongoose.base.item.ItemFactory;
+import com.emc.mongoose.base.item.PathItem;
+import com.emc.mongoose.base.item.op.OpType;
+import com.emc.mongoose.base.item.op.Operation;
+import com.emc.mongoose.base.item.op.data.DataOperation;
+import com.emc.mongoose.base.item.op.path.PathOperation;
+import com.emc.mongoose.base.logging.LogUtil;
+import com.emc.mongoose.base.logging.Loggers;
+import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.coop.nio.NioStorageDriverBase;
 import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.io.util.OutputStreamWrapperChannel;
@@ -42,15 +42,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.emc.mongoose.item.DataItem.rangeCount;
-import static com.emc.mongoose.item.DataItem.rangeOffset;
-import static com.emc.mongoose.item.op.Operation.Status.ACTIVE;
-import static com.emc.mongoose.item.op.Operation.Status.FAIL_IO;
-import static com.emc.mongoose.item.op.Operation.Status.FAIL_UNKNOWN;
-import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_AUTH;
-import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_CLIENT;
-import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_CORRUPT;
-import static com.emc.mongoose.item.op.Operation.Status.RESP_FAIL_UNKNOWN;
+import static com.emc.mongoose.base.item.DataItem.rangeCount;
+import static com.emc.mongoose.base.item.DataItem.rangeOffset;
+import static com.emc.mongoose.base.item.op.Operation.Status.ACTIVE;
+import static com.emc.mongoose.base.item.op.Operation.Status.FAIL_IO;
+import static com.emc.mongoose.base.item.op.Operation.Status.FAIL_UNKNOWN;
+import static com.emc.mongoose.base.item.op.Operation.Status.RESP_FAIL_AUTH;
+import static com.emc.mongoose.base.item.op.Operation.Status.RESP_FAIL_CLIENT;
+import static com.emc.mongoose.base.item.op.Operation.Status.RESP_FAIL_CORRUPT;
+import static com.emc.mongoose.base.item.op.Operation.Status.RESP_FAIL_UNKNOWN;
+import static com.emc.mongoose.base.storage.driver.StorageDriver.BUFF_SIZE_MAX;
+import static com.emc.mongoose.base.storage.driver.StorageDriver.BUFF_SIZE_MIN;
 import static com.github.akurilov.commons.system.DirectMemUtil.REUSABLE_BUFF_SIZE_MAX;
 
 public class HdfsStorageDriver<I extends Item, O extends Operation<I>>
@@ -73,8 +75,7 @@ extends NioStorageDriverBase<I, O> {
 	public HdfsStorageDriver(
 		final String uriSchema, final String testStepId, final DataInput dataInput,
 		final Config storageConfig, final boolean verifyFlag, final int batchSize
-	)
-	throws OmgShootMyFootException {
+	) throws IllegalConfigurationException {
 		super(testStepId, dataInput, storageConfig, verifyFlag, batchSize);
 		this.uriSchema = uriSchema;
 		hadoopConfig = new Configuration();
@@ -127,13 +128,14 @@ extends NioStorageDriverBase<I, O> {
 	}
 
 	@Override
-	protected void prepare(final O operation) {
+	protected boolean prepare(final O operation) {
 		super.prepare(operation);
 		String endpointAddr = operation.nodeAddr();
 		if(endpointAddr == null) {
 			endpointAddr = getNextEndpointAddr();
 			operation.nodeAddr(endpointAddr);
 		}
+		return true;
 	}
 
 	protected static Path getFilePath(final String basePath, final String fileName) {
@@ -918,8 +920,7 @@ extends NioStorageDriverBase<I, O> {
 	public List<I> list(
 		final ItemFactory<I> itemFactory, final String path, final String prefix, final int idRadix,
 		final I lastPrevItem, final int count
-	)
-	throws IOException {
+	) throws IOException {
 		return ListHelper.list(
 			itemFactory, path, prefix, idRadix, lastPrevItem, count, getEndpoint(endpointAddrs[0])
 		);

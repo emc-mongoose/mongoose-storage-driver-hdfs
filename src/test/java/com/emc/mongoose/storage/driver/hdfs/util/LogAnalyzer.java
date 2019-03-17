@@ -1,8 +1,8 @@
 package com.emc.mongoose.storage.driver.hdfs.util;
 
 
-import com.emc.mongoose.item.op.OpType;
-import com.emc.mongoose.item.op.Operation;
+import com.emc.mongoose.base.item.op.OpType;
+import com.emc.mongoose.base.item.op.Operation;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 
@@ -26,14 +26,14 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-import static com.emc.mongoose.Constants.MIB;
-import static com.emc.mongoose.env.DateUtil.FMT_DATE_ISO8601;
-import static com.emc.mongoose.env.DateUtil.FMT_DATE_METRICS_TABLE;
-import static com.emc.mongoose.item.op.Operation.Status.FAIL_IO;
-import static com.emc.mongoose.item.op.Operation.Status.INTERRUPTED;
-import static com.emc.mongoose.item.op.Operation.Status.SUCC;
-import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER;
-import static com.emc.mongoose.logging.MetricsAsciiTableLogMessage.TABLE_HEADER_PERIOD;
+import static com.emc.mongoose.base.Constants.MIB;
+import static com.emc.mongoose.base.env.DateUtil.FMT_DATE_ISO8601;
+import static com.emc.mongoose.base.env.DateUtil.FMT_DATE_METRICS_TABLE;
+import static com.emc.mongoose.base.item.op.Operation.Status.FAIL_IO;
+import static com.emc.mongoose.base.item.op.Operation.Status.INTERRUPTED;
+import static com.emc.mongoose.base.item.op.Operation.Status.SUCC;
+import static com.emc.mongoose.base.logging.MetricsAsciiTableLogMessage.TABLE_HEADER;
+import static com.emc.mongoose.base.logging.MetricsAsciiTableLogMessage.TABLE_HEADER_PERIOD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;

@@ -1,0 +1,19 @@
+---
+storage:
+  net:
+    bindBacklogSize: 0
+    interestOpQueued: false
+    keepAlive: true
+    linger: 0
+    reuseAddr: true
+    rcvBuf: 0
+    sndBuf: 0
+    tcpNoDelay: true
+    timeoutMilliSec: 0
+    ssl: false
+    node:
+      addrs:
+      - 127.0.0.1
+      connAttemptsLimit: 0
+      port: 9020
+      slice: false

@@ -1,21 +1,21 @@
 package com.emc.mongoose.storage.driver.hdfs;
 
-import com.emc.mongoose.data.DataInput;
-import com.emc.mongoose.env.ExtensionBase;
-import com.emc.mongoose.exception.OmgShootMyFootException;
-import com.emc.mongoose.item.Item;
-import com.emc.mongoose.item.op.Operation;
-import com.emc.mongoose.storage.driver.StorageDriverFactory;
+import com.emc.mongoose.base.config.IllegalConfigurationException;
+import com.emc.mongoose.base.data.DataInput;
+import com.emc.mongoose.base.env.ExtensionBase;
+import com.emc.mongoose.base.item.Item;
+import com.emc.mongoose.base.item.op.Operation;
+import com.emc.mongoose.base.storage.driver.StorageDriverFactory;
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
-import com.github.akurilov.confuse.io.json.JsonSchemaProviderBase;
+import com.github.akurilov.confuse.io.yaml.YamlSchemaProviderBase;
 
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.emc.mongoose.Constants.APP_NAME;
+import static com.emc.mongoose.base.Constants.APP_NAME;
 
 public final class HdfsStorageDriverExtension<
 	I extends Item, O extends Operation<I>, T extends HdfsStorageDriver<I, O>
@@ -25,11 +25,11 @@ implements StorageDriverFactory<I, O, T> {
 
 	private static final String NAME = "hdfs";
 
-	private static final SchemaProvider SCHEMA_PROVIDER = new JsonSchemaProviderBase() {
+	private static final SchemaProvider SCHEMA_PROVIDER = new YamlSchemaProviderBase() {
 
 		@Override
 		protected final InputStream schemaInputStream() {
-			return getClass().getResourceAsStream("/config-schema-storage-net.json");
+			return getClass().getResourceAsStream("/config-schema-storage-net.yaml");
 		}
 
 		@Override
@@ -38,7 +38,7 @@ implements StorageDriverFactory<I, O, T> {
 		}
 	};
 
-	private static final String DEFAULTS_FILE_NAME = "defaults-storage-net.json";
+	private static final String DEFAULTS_FILE_NAME = "defaults-storage-net.yaml";
 
 	private static final List<String> RES_INSTALL_FILES = Collections.unmodifiableList(
 		Arrays.asList(
@@ -70,9 +70,7 @@ implements StorageDriverFactory<I, O, T> {
 	public T create(
 		final String stepId, final DataInput dataInput, final Config storageConfig, final boolean verifyFlag,
 		final int batchSize
-	) throws OmgShootMyFootException, InterruptedException {
-		return (T) new HdfsStorageDriver<I, O>(
-			NAME, stepId, dataInput, storageConfig, verifyFlag, batchSize
-		);
+	) throws IllegalConfigurationException {
+		return (T) new HdfsStorageDriver<I, O>(NAME, stepId, dataInput, storageConfig, verifyFlag, batchSize);
 	}
 }
