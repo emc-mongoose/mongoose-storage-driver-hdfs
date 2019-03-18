@@ -98,7 +98,7 @@ public class ReadUsingVariablePathTest {
 		// Item path should look like:
 		// ${FILE_OUTPUT_PATH}/1/b/0123456789abcdef
 		// ${FILE_OUTPUT_PATH}/b/fedcba9876543210
-		final Pattern subPathPtrn = Pattern.compile("(/[0-9a-f]){1,2}/[0-9a-f]{16}");
+		final Pattern subPathPtrn = Pattern.compile("(/[0-9a-f]){1,2}/[0-9a-f]{1,16}");
 		final Consumer<CSVRecord> opTraceReqTestFunc = opTraceRec -> {
 			LogAnalyzer.testOpTraceRecord(opTraceRec, OpType.READ.ordinal(), ITEM_DATA_SIZE);
 			String nextFilePath = opTraceRec.get(1);
