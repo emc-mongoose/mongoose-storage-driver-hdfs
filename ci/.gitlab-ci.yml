@@ -117,17 +117,17 @@ build_docker_image:
 test_system_legacy_circular_append:
   extends: .test_system_legacy
   variables:
-    TEST_NAME=CircularAppend
+    TEST_NAME: CircularAppend
 
 test_system_legacy_copy_using_input_path:
   extends: .test_system_legacy
   variables:
-    TEST_NAME=CopyUsingInputPath
+    TEST_NAME: CopyUsingInputPath
 
 test_system_legacy_read_using_variable_path:
   extends: .test_system_legacy
   variables:
-    TEST_NAME=ReadUsingVariablePath
+    TEST_NAME: ReadUsingVariablePath
 
 release_to_maven_repo:
   stage: deploy
