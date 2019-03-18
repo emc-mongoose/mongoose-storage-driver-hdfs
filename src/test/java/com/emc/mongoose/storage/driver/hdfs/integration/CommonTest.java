@@ -152,11 +152,11 @@ extends HdfsStorageDriver {
 			fileContent[i] = (byte) System.nanoTime();
 		}
 
-		long n = IntStream
+		IntStream
 			.range(0, fileCount)
 			.parallel()
 			.mapToObj(Integer::toString)
-			.peek(
+			.forEach(
 				fileName -> {
 					final Path dstFilePath = new Path(parentDirPath, fileName);
 					try(
@@ -172,14 +172,13 @@ extends HdfsStorageDriver {
 						);
 					}
 				}
-			)
-			.count();
+			);
 
 		final ItemFactory<DataItem> dataItemFactory = new DataItemFactoryImpl<>();
 		final List<DataItem> listedItems = list(dataItemFactory, parentDirPath, null, 10, null, fileCount);
 
 		assertEquals(fileCount, listedItems.size());
-		n = listedItems
+		listedItems
 			.parallelStream()
 			.peek(
 				dataItem -> {
@@ -190,13 +189,12 @@ extends HdfsStorageDriver {
 				}
 			)
 			.map(Item::name)
-			.peek(
+			.forEach(
 				dataItemName ->
 					assertTrue(
 						Integer.parseInt(dataItemName.substring(dataItemName.lastIndexOf('/') + 1))
 							< fileCount
 					)
-			)
-			.count();
+			);
 	}
 }

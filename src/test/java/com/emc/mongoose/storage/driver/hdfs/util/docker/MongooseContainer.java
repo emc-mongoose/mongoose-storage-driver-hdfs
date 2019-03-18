@@ -99,7 +99,7 @@ implements Runnable, Closeable {
 	throws InterruptedException {
 		this.durationLimitSeconds = durationLimitSeconds;
 		this.dockerClient = DockerClientBuilder.getInstance().build();
-		final String imageVersion = System.getenv("IMAGE_VERSION");
+		final String imageVersion = System.getenv("VERSION");
 		final String imageId = IMAGE_NAME + ":" + (imageVersion == null ? "latest" : imageVersion);
 		try {
 			dockerClient.inspectImageCmd(imageId).exec();
@@ -158,7 +158,6 @@ implements Runnable, Closeable {
 			.withVolumes(volumeShare, volumeLog)
 			.withAttachStdout(true)
 			.withAttachStderr(true)
-			.withEntrypoint("/opt/mongoose/entrypoint-storage-driver-hdfs.sh")
 			.withEnv(env)
 			.withCmd(this.configArgs)
 			.exec();

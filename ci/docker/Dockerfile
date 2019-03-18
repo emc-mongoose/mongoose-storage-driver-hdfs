@@ -12,4 +12,9 @@ FROM emcmongoose/mongoose-storage-driver-nio:${BASE_DRIVER_VERSION}
 ARG BASE_VERSION
 ARG VERSION
 COPY --from=0 /build/libs/mongoose-storage-driver-hdfs-${VERSION}.jar /tmp/
-RUN mv -f /tmp/mongoose-storage-driver-hdfs-*.jar $HOME/.mongoose/${BASE_VERSION}/ext/
+ADD ci/docker/entrypoint_storage_driver_hdfs.sh /opt/mongoose/entrypoint_storage_driver_hdfs.sh
+ADD ci/docker/entrypoint_storage_driver_hdfs_debug.sh /opt/mongoose/entrypoint_storage_driver_hdfs_debug.sh
+RUN mv -f /tmp/mongoose-storage-driver-hdfs-*.jar $HOME/.mongoose/${BASE_VERSION}/ext/; \
+    chmod +x /opt/mongoose/entrypoint_storage_driver_hdfs.sh; \
+    chmod +x /opt/mongoose/entrypoint_storage_driver_hdfs_debug.sh
+ENTRYPOINT ["/opt/mongoose/entrypoint_storage_driver_hdfs.sh"]
