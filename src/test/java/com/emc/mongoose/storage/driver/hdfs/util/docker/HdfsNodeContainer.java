@@ -50,6 +50,7 @@ implements Closeable {
 			.logContainerCmd(CONTAINER_ID)
 			.withFollowStream(true)
 			.withStdOut(true)
+			.withStdErr(true)
 			.exec(
 				new ResultCallback<>() {
 					@Override
