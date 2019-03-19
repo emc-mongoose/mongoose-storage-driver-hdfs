@@ -59,7 +59,14 @@ build:
 test_integration:
   stage: test
   script:
+    - ip a
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+    - docker run -d --name=hdfs_node --network=host  dockerq/docker-hdfs
+    - sleep 30
+    - netstat -n | grep 9000
+    - telnet localhost 9000
+    - docker kill hdfs_node
+    - docker rm hdfs_node
     - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
     paths:
