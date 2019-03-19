@@ -61,7 +61,7 @@ test_integration:
   script:
     - ip a
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-    - docker run -d --name=hdfs_node --network=host  dockerq/docker-hdfs
+    - docker run -d --name=hdfs_node -p 9000:9000  dockerq/docker-hdfs
     - sleep 30
     - telnet localhost 9000
     - docker kill hdfs_node
