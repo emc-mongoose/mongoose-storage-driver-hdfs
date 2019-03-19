@@ -60,7 +60,7 @@ test_integration:
   stage: test
   services:
     - name: dockerq/docker-hdfs
-      alias: hdfs_node
+      alias: hdfsnode
   script:
     - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
@@ -82,7 +82,7 @@ build_docker_image:
   stage: test_functional
   services:
     - name: dockerq/docker-hdfs
-      alias: hdfs_node
+      alias: hdfsnode
   variables:
     HOST_WORKING_DIR: ${CI_PROJECT_DIR}
     PYTHONPATH: ${PYTHONPATH}:/usr/lib/python2.7/site-packages:src/test/robot/lib
@@ -110,7 +110,7 @@ build_docker_image:
   stage: test_functional
   services:
     - name: dockerq/docker-hdfs
-      alias: hdfs_node
+      alias: hdfsnode
   script:
     - export BASE_VERSION=$(cat build.gradle | grep mongooseBase  | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - export VERSION=$(cat build.gradle | grep version\ = | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')

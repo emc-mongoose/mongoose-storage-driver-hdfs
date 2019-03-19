@@ -6,6 +6,7 @@ import com.emc.mongoose.base.item.PathItem;
 import com.emc.mongoose.base.item.op.path.PathOperation;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
@@ -63,7 +64,7 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", "hdfs_node");
+			config.val("storage-net-node-addrs", HdfsNode.addr());
 			config.val("storage-net-node-port", 9000);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());

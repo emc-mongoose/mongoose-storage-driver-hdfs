@@ -2,6 +2,7 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -60,7 +61,7 @@ public class CopyUsingInputPathTest {
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
 		args.add("--load-step-id=" + STEP_ID);
-		args.add("--storage-net-node-addrs=hdfs_node");
+		args.add("--storage-net-node-addrs=" + HdfsNode.addr());
 		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("TEST_STEP_LIMIT_COUNT", Integer.toString(TEST_STEP_LIMIT_COUNT));

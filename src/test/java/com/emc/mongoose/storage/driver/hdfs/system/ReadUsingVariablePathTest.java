@@ -2,6 +2,7 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
+import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -62,7 +63,7 @@ public class ReadUsingVariablePathTest {
 		args.add("--run-scenario=" + hostScenarioPath);
 		args.add("--item-naming-radix=16");
 		args.add("--item-naming-length=16");
-		args.add("--storage-net-node-addrs=hdfs_node");
+		args.add("--storage-net-node-addrs=" + HdfsNode.addr());
 		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		EnvUtil.set("ITEM_LIST_FILE", ITEM_LIST_FILE);
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
