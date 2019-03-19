@@ -45,7 +45,7 @@ implements Closeable {
 		CONTAINER_ID = container.getId();
 		LOG.info("docker start " + CONTAINER_ID + "...");
 		DOCKER_CLIENT.startContainerCmd(CONTAINER_ID).exec();
-		TimeUnit.SECONDS.sleep(30);
+		TimeUnit.SECONDS.sleep(100);
 		DOCKER_CLIENT
 			.logContainerCmd(CONTAINER_ID)
 			.withFollowStream(true)
@@ -72,7 +72,6 @@ implements Closeable {
 
 					@Override
 					public void close() {
-
 					}
 				}
 			);
