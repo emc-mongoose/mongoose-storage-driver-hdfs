@@ -62,6 +62,9 @@ test_integration:
     - name: dockerq/docker-hdfs
       alias: hdfsnode
   script:
+    - ip a
+    - cat /etc/hosts
+    - telnet hdfsnode 9000
     - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
     paths:
@@ -112,9 +115,6 @@ build_docker_image:
     - name: dockerq/docker-hdfs
       alias: hdfsnode
   script:
-    - ip a
-    - cat /etc/hosts
-    - telnet hdfsnode 9000
     - export BASE_VERSION=$(cat build.gradle | grep mongooseBase  | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - export VERSION=$(cat build.gradle | grep version\ = | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
