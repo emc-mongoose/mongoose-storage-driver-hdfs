@@ -1,9 +1,11 @@
 package com.emc.mongoose.storage.driver.hdfs.util.docker;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
@@ -44,6 +46,36 @@ implements Closeable {
 		LOG.info("docker start " + CONTAINER_ID + "...");
 		DOCKER_CLIENT.startContainerCmd(CONTAINER_ID).exec();
 		TimeUnit.SECONDS.sleep(30);
+		DOCKER_CLIENT
+			.logContainerCmd(CONTAINER_ID)
+			.withFollowStream(true)
+			.withStdOut(true)
+			.exec(
+				new ResultCallback<>() {
+					@Override
+					public void onStart(final Closeable closeable) {
+					}
+
+					@Override
+					public void onNext(final Frame object) {
+						System.out.println(new String(object.getPayload()));
+					}
+
+					@Override
+					public void onError(final Throwable throwable) {
+						throwable.printStackTrace(System.err);
+					}
+
+					@Override
+					public void onComplete() {
+					}
+
+					@Override
+					public void close() {
+
+					}
+				}
+			);
 
 	}
 
