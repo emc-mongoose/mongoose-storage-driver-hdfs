@@ -58,7 +58,7 @@ implements Closeable {
 
 					@Override
 					public void onNext(final Frame object) {
-						System.out.println(new String(object.getPayload()));
+						System.out.print("HDFS_NODE: " + new String(object.getPayload()));
 					}
 
 					@Override
