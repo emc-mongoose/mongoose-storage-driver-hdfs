@@ -8,7 +8,6 @@ import com.emc.mongoose.base.item.Item;
 import com.emc.mongoose.base.item.ItemFactory;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
 import com.github.akurilov.confuse.Config;
@@ -17,8 +16,6 @@ import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -47,7 +44,6 @@ extends HdfsStorageDriver {
 	}
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -86,8 +82,8 @@ extends HdfsStorageDriver {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", "localhost"/*Collections.singletonList(ENV_SVC_HOST)*/);
-			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
+			config.val("storage-net-node-addrs", "hdfs_node");
+			config.val("storage-net-node-port", 9000);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);
@@ -113,22 +109,6 @@ extends HdfsStorageDriver {
 			"hdfs", "test-common-hdfs-driver", DATA_INPUT,
 			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
 		);
-	}
-
-	@BeforeClass
-	public static void setUpClass()
-	throws Exception {
-		try {
-			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
-		} catch(final Exception e) {
-			throw new AssertionError(e);
-		}
-	}
-
-	@AfterClass
-	public static void tearDownClass()
-	throws Exception {
-		HDFS_NODE_CONTAINER.close();
 	}
 
 	@Test
