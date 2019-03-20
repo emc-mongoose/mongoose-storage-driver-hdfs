@@ -56,20 +56,20 @@ build:
     paths:
       - build/libs/mongoose-*.jar
 
-test_integration:
-  stage: test
-  services:
-    - name: dockerq/docker-hdfs
-      alias: hdfsnode
-  script:
-    - ip a
-    - cat /etc/hosts
-    - telnet hdfsnode 9000
-    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
-  artifacts:
-    paths:
-      - build/reports/tests/test/*
-    when: on_failure
+#test_integration:
+#  stage: test
+#  services:
+#    - name: dockerq/docker-hdfs
+#      alias: hdfsnode
+#  script:
+#    - ip a
+#    - cat /etc/hosts
+#    - telnet hdfsnode 9000
+#    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+#  artifacts:
+#    paths:
+#      - build/reports/tests/test/*
+#    when: on_failure
 
 build_docker_image:
   stage: build_docker_image

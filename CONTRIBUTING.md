@@ -213,17 +213,6 @@ export ITEM_SIZE=small
 ./gradlew clean systemTest --tests com.emc.mongoose.system.CreateNoLimitTest
 ```
 
-### 4.2.4. Endurance Tests
-
-```bash
-export MONGOOSE_IMAGE_VERSION=testing
-export STORAGE_TYPE=swift
-export RUN_MODE=distributed
-export CONCURRENCY=unlimited
-export ITEM_SIZE=large
-./gradlew clean enduranceTest --tests com.emc.mongoose.endurance.ParallelPipelineAndInfiniteLoopTest
-```
-
 ### 4.2.5. Robot Tests
 
 *Note*:
@@ -237,7 +226,7 @@ export TEST=<TEST>
 
 Example:
 ```bash
-SUITE=api.storage TEST=s3 ./gradlew clean robotest
+SUITE=api.storage TEST=hdfs ./gradlew clean robotest
 ```
 
 ## 4.3. Releasing
