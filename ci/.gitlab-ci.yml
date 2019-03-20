@@ -3,8 +3,8 @@ image: docker:stable
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_DRIVER: overlay2
-  IMAGE_NAME: emcmongoose/mongoose-storage-driver-fs
-  IMAGE_FILE_NAME: build/mongoose-storage-driver-fs.tar
+  IMAGE_NAME: emcmongoose/mongoose-storage-driver-hdfs
+  IMAGE_FILE_NAME: build/mongoose-storage-driver-hdfs.tar
   JAVA_HOME: /opt/jdk-11.0.2+9
   ROBOTEST_CONTAINER_WORKING_DIR: /root/mongoose
   SERVICE_HOST: docker # should be used instead of the "localhost"/"127.0.0.1" in GL CI
