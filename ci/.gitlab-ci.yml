@@ -60,10 +60,8 @@ build:
 
 test_integration:
   stage: test
-  services:
-    - name: dockerq/docker-hdfs
-      alias: hdfsnode
   script:
+    - cat /etc/hosts
     - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
     paths:
