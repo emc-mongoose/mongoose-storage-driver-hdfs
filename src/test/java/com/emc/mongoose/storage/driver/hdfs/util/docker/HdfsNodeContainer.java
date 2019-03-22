@@ -37,6 +37,7 @@ implements Closeable {
 		final CreateContainerResponse container = DOCKER_CLIENT
 			.createContainerCmd(IMAGE_NAME)
 			.withName("hdfs_node")
+			.withHostConfig(HostConfig.newHostConfig().withNetworkMode("host"))
 			.withExposedPorts(ExposedPort.tcp(PORT))
 			.withAttachStderr(true)
 			.withAttachStdout(true)

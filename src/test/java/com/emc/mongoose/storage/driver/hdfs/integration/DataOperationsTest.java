@@ -10,6 +10,7 @@ import com.emc.mongoose.base.item.op.data.DataOperation;
 import com.emc.mongoose.base.item.op.data.DataOperationImpl;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.collection.TreeUtil;
@@ -93,7 +94,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", "localhost");
+			config.val("storage-net-node-addrs", DockerHost.ENV_SVC_HOST);
 			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());

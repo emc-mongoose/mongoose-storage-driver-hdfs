@@ -6,6 +6,7 @@ import com.emc.mongoose.base.item.PathItem;
 import com.emc.mongoose.base.item.op.path.PathOperation;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.confuse.Config;
@@ -69,7 +70,7 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", "localhost");
+			config.val("storage-net-node-addrs", DockerHost.ENV_SVC_HOST);
 			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
