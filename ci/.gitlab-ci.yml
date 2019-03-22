@@ -11,6 +11,8 @@ variables:
 
 services:
   - docker:dind
+  - name: pravega/docker-hdfs
+    alias: storage
 
 stages:
   - build
@@ -56,20 +58,17 @@ build:
     paths:
       - build/libs/mongoose-*.jar
 
-#test_integration:
-#  stage: test
-#  services:
-#    - name: dockerq/docker-hdfs
-#      alias: hdfsnode
-#  script:
-#    - ip a
-#    - cat /etc/hosts
-#    - telnet hdfsnode 9000
-#    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
-#  artifacts:
-#    paths:
-#      - build/reports/tests/test/*
-#    when: on_failure
+test_integration:
+  stage: test
+  services:
+    - name: dockerq/docker-hdfs
+      alias: hdfsnode
+  script:
+    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+  artifacts:
+    paths:
+      - build/reports/tests/test/*
+    when: on_failure
 
 build_docker_image:
   stage: build_docker_image
@@ -83,9 +82,6 @@ build_docker_image:
 
 .test_robot:
   stage: test_functional
-  services:
-    - name: dockerq/docker-hdfs
-      alias: hdfsnode
   variables:
     HOST_WORKING_DIR: ${CI_PROJECT_DIR}
     PYTHONPATH: ${PYTHONPATH}:/usr/lib/python2.7/site-packages:src/test/robot/lib
@@ -111,9 +107,6 @@ build_docker_image:
 
 .test_system_legacy:
   stage: test_functional
-  services:
-    - name: dockerq/docker-hdfs
-      alias: hdfsnode
   script:
     - export BASE_VERSION=$(cat build.gradle | grep mongooseBase  | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - export VERSION=$(cat build.gradle | grep version\ = | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
@@ -125,20 +118,20 @@ build_docker_image:
       - build/reports/tests/test/*
     when: on_failure
 
-#test_system_legacy_circular_append:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: CircularAppend
-#
-#test_system_legacy_copy_using_input_path:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: CopyUsingInputPath
-#
-#test_system_legacy_read_using_variable_path:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: ReadUsingVariablePath
+test_system_legacy_circular_append:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: CircularAppend
+
+test_system_legacy_copy_using_input_path:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: CopyUsingInputPath
+
+test_system_legacy_read_using_variable_path:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: ReadUsingVariablePath
 
 release_to_maven_repo:
   stage: deploy

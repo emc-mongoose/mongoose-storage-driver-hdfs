@@ -84,7 +84,7 @@ extends HdfsStorageDriver {
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
 			config.val("storage-net-node-addrs", HdfsNode.addr());
-			config.val("storage-net-node-port", 9000);
+			config.val("storage-net-node-port", 8020);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);

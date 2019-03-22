@@ -91,7 +91,7 @@ public class CopyUsingInputPathTest {
 	public void testOpTraceRecords()
 	throws Exception {
 		final LongAdder opTraceRecCount = new LongAdder();
-		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
+		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 8020, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
 		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);

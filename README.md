@@ -130,13 +130,13 @@ compile group: 'com.github.emc-mongoose', name: 'mongoose-storage-driver-hdfs', 
 
 Node's FS browser is available at default port #50070
 
-HDFS default port #9000
+HDFS default port #8020 (or 9000?)
 
 #### Basic Testing
 
 1. Run the pseudo distributed HDFS cluster
 ```bash
-docker run -d --net host -e SSH_PORT=2222 --name hdfs dockerq/docker-hdfs
+docker run -p 22022:22 -p 8020:8020 -p 50010:50010 -p 50020:50020 -p 50070:50070 -p 50075:50075 -d pravega/hdfs
 ```
 
 2. Open the browser and check the HDFS share @ http://127.0.0.1:50070/explorer.html
@@ -158,7 +158,7 @@ java -jar mongoose-<VERSION>.jar \
     --storage-driver-limit-concurrency=10 \
     --storage-driver-type=hdfs \
     --storage-net-node-addrs=<HADOOP_NAME_NODE_IP_ADDR> \
-    --storage-net-node-port=9000
+    --storage-net-node-port=8020
 ```
 
 ### Operations
