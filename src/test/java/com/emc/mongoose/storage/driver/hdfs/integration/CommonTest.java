@@ -72,7 +72,7 @@ extends HdfsStorageDriver {
 				.ifPresent(configSchemas::add);
 			final Map<String, Object> configSchema = TreeUtil.reduceForest(configSchemas);
 			final Config config = new BasicConfig("-", configSchema);
-			config.val("load-batch-size", 4096);
+			config.val("load-batch-size", 128);
 			config.val("storage-net-reuseAddr", true);
 			config.val("storage-net-bindBacklogSize", 0);
 			config.val("storage-net-keepAlive", true);
@@ -125,8 +125,8 @@ extends HdfsStorageDriver {
 	throws Exception {
 
 		final FileSystem fs = getEndpoint(endpointAddrs[0]);
-		final String parentDirPath = "/default";
-		final int fileCount = 4321;
+		final String parentDirPath = "/testDirListing";
+		final int fileCount = 321;
 		final int fileSize = 0x10_00_00;
 		final byte[] fileContent = new byte[fileSize];
 		for(int i = 0; i < fileSize; i ++) {

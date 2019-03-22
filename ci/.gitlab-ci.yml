@@ -61,7 +61,6 @@ build:
 test_integration:
   stage: test
   script:
-    - cat /etc/hosts
     - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
     paths:
