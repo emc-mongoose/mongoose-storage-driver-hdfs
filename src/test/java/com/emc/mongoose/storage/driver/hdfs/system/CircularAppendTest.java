@@ -2,8 +2,8 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVFormat;
@@ -43,6 +43,7 @@ public class CircularAppendTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(16 * MIB);
 	private static final int CONCURRENCY = 10;
 
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -63,7 +64,6 @@ public class CircularAppendTest {
 		final List<String> args = new ArrayList<>();
 		args.add("--item-output-path=" + ITEM_OUTPUT_PATH);
 		args.add("--load-step-id=" + STEP_ID);
-		args.add("--storage-net-node-addrs=" + HdfsNode.addr());
 		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("BASE_ITEMS_COUNT", Integer.toString(BASE_ITEMS_COUNT));
@@ -73,6 +73,7 @@ public class CircularAppendTest {
 		EnvUtil.set("ITEM_LIST_FILE_1", ITEM_LIST_FILE_1);
 
 		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final InterruptedException e) {
 			throw e;
@@ -87,6 +88,7 @@ public class CircularAppendTest {
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
+		HDFS_NODE_CONTAINER.close();
 		MONGOOSE_CONTAINER.close();
 	}
 

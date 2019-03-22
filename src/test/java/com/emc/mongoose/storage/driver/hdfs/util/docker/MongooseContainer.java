@@ -111,7 +111,7 @@ implements Runnable, Closeable {
 		}
 		this.configArgs.add("--output-metrics-trace-persist=true");
 		this.configArgs.add("--storage-net-node-addrs=" + ENV_SVC_HOST);
-		this.configArgs.add("--storage-net-node-port=8020");
+		this.configArgs.add("--storage-net-node-port=" + HdfsNodeContainer.PORT);
 		for(final String configArg : configArgs) {
 			if(configArg.startsWith("--run-scenario=")) {
 				final String scenarioPathStr = configArg.substring("--run-scenario=".length());

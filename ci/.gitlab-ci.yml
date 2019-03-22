@@ -11,8 +11,6 @@ variables:
 
 services:
   - docker:dind
-  - name: pravega/hdfs
-    alias: storage
 
 stages:
   - build

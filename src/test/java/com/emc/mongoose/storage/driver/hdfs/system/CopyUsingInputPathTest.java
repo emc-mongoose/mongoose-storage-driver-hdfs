@@ -2,8 +2,8 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVRecord;
@@ -42,6 +42,7 @@ public class CopyUsingInputPathTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(MIB);
 	private static final int CONCURRENCY = 100;
 
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -61,7 +62,6 @@ public class CopyUsingInputPathTest {
 		Files.copy(Paths.get(resourceScenarioPath), hostScenarioPath);
 		final List<String> args = new ArrayList<>();
 		args.add("--load-step-id=" + STEP_ID);
-		args.add("--storage-net-node-addrs=" + HdfsNode.addr());
 		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
 		args.add("--run-scenario=" + hostScenarioPath);
 		EnvUtil.set("TEST_STEP_LIMIT_COUNT", Integer.toString(TEST_STEP_LIMIT_COUNT));
@@ -70,6 +70,7 @@ public class CopyUsingInputPathTest {
 		EnvUtil.set("ITEM_PATH_1", ITEM_PATH_1);
 
 		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final InterruptedException e) {
 			throw e;
@@ -84,6 +85,7 @@ public class CopyUsingInputPathTest {
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
+		HDFS_NODE_CONTAINER.close();
 		MONGOOSE_CONTAINER.close();
 	}
 
@@ -91,7 +93,7 @@ public class CopyUsingInputPathTest {
 	public void testOpTraceRecords()
 	throws Exception {
 		final LongAdder opTraceRecCount = new LongAdder();
-		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 8020, "/", null, null);
+		final URI endpointUri = new URI("hdfs", null, "127.0.0.1", 9000, "/", null, null);
 		final Configuration hadoopConfig = new Configuration();
 		//hadoopConfig.setClassLoader(Extensions.CLS_LOADER);
 		final FileSystem endpoint = FileSystem.get(endpointUri, hadoopConfig);

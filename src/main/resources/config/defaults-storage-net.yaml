@@ -15,5 +15,5 @@ storage:
       addrs:
       - 127.0.0.1
       connAttemptsLimit: 0
-      port: 8020
+      port: 9000
       slice: false
