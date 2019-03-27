@@ -6,25 +6,31 @@ import com.emc.mongoose.base.item.PathItem;
 import com.emc.mongoose.base.item.op.path.PathOperation;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.confuse.Config;
 import com.github.akurilov.confuse.SchemaProvider;
 import com.github.akurilov.confuse.impl.BasicConfig;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.emc.mongoose.base.Constants.APP_NAME;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 import static org.junit.Assert.fail;
 
 public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -64,8 +70,8 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", HdfsNode.addr());
-			config.val("storage-net-node-port", 9000);
+			config.val("storage-net-node-addrs", DockerHost.ENV_SVC_HOST);
+			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);
@@ -91,23 +97,5 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			"hdfs", "test-path-hdfs-driver", null,
 			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
 		);
-	}
-
-	@Test
-	public final void testCreateDir()
-	throws Exception {
-
-	}
-
-	@Test
-	public final void testReadDir()
-	throws Exception {
-
-	}
-
-	@Test
-	public final void testDeleteDir()
-	throws Exception {
-
 	}
 }

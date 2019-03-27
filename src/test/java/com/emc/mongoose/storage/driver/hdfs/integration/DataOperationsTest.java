@@ -10,7 +10,8 @@ import com.emc.mongoose.base.item.op.data.DataOperation;
 import com.emc.mongoose.base.item.op.data.DataOperationImpl;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.Range;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
@@ -20,6 +21,8 @@ import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -52,6 +55,7 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 	}
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -90,8 +94,8 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", HdfsNode.addr());
-			config.val("storage-net-node-port", 9000);
+			config.val("storage-net-node-addrs", DockerHost.ENV_SVC_HOST);
+			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);
@@ -117,6 +121,22 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			"hdfs", "test-data-hdfs-driver", DATA_INPUT,
 			config.configVal("storage"), true, config.configVal("load").intVal("batch-size")
 		);
+	}
+
+	@BeforeClass
+	public static void setUpClass()
+	throws Exception {
+		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+		} catch(final Exception e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	@AfterClass
+	public static void tearDownClass()
+	throws Exception {
+		HDFS_NODE_CONTAINER.close();
 	}
 
 	@Test

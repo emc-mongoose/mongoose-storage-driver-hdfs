@@ -8,7 +8,7 @@ import com.emc.mongoose.base.item.Item;
 import com.emc.mongoose.base.item.ItemFactory;
 import com.emc.mongoose.base.storage.Credential;
 import com.emc.mongoose.storage.driver.hdfs.HdfsStorageDriver;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.github.akurilov.commons.collection.TreeUtil;
 import com.github.akurilov.commons.system.SizeInBytes;
 import com.github.akurilov.confuse.Config;
@@ -17,9 +17,12 @@ import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.emc.mongoose.base.Constants.APP_NAME;
+import static com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost.ENV_SVC_HOST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +49,7 @@ extends HdfsStorageDriver {
 	}
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -72,7 +77,7 @@ extends HdfsStorageDriver {
 				.ifPresent(configSchemas::add);
 			final Map<String, Object> configSchema = TreeUtil.reduceForest(configSchemas);
 			final Config config = new BasicConfig("-", configSchema);
-			config.val("load-batch-size", 4096);
+			config.val("load-batch-size", 128);
 			config.val("storage-net-reuseAddr", true);
 			config.val("storage-net-bindBacklogSize", 0);
 			config.val("storage-net-keepAlive", true);
@@ -83,8 +88,8 @@ extends HdfsStorageDriver {
 			config.val("storage-net-interestOpQueued", false);
 			config.val("storage-net-linger", 0);
 			config.val("storage-net-timeoutMilliSec", 0);
-			config.val("storage-net-node-addrs", HdfsNode.addr());
-			config.val("storage-net-node-port", 9000);
+			config.val("storage-net-node-addrs", Collections.singletonList(ENV_SVC_HOST));
+			config.val("storage-net-node-port", HdfsNodeContainer.PORT);
 			config.val("storage-net-node-connAttemptsLimit", 0);
 			config.val("storage-auth-uid", CREDENTIAL.getUid());
 			config.val("storage-auth-token", null);
@@ -112,6 +117,22 @@ extends HdfsStorageDriver {
 		);
 	}
 
+	@BeforeClass
+	public static void setUpClass()
+	throws Exception {
+		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
+		} catch(final Exception e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	@AfterClass
+	public static void tearDownClass()
+	throws Exception {
+		HDFS_NODE_CONTAINER.close();
+	}
+
 	@Test
 	public final void testGetEndpoint()
 	throws Exception {
@@ -125,8 +146,8 @@ extends HdfsStorageDriver {
 	throws Exception {
 
 		final FileSystem fs = getEndpoint(endpointAddrs[0]);
-		final String parentDirPath = "/default";
-		final int fileCount = 4321;
+		final String parentDirPath = "/testDirListing";
+		final int fileCount = 321;
 		final int fileSize = 0x10_00_00;
 		final byte[] fileContent = new byte[fileSize];
 		for(int i = 0; i < fileSize; i ++) {

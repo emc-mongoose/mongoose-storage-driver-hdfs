@@ -2,8 +2,9 @@ package com.emc.mongoose.storage.driver.hdfs.system;
 
 import com.emc.mongoose.base.item.op.OpType;
 import com.emc.mongoose.storage.driver.hdfs.util.EnvUtil;
-import com.emc.mongoose.storage.driver.hdfs.util.HdfsNode;
 import com.emc.mongoose.storage.driver.hdfs.util.LogAnalyzer;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.DockerHost;
+import com.emc.mongoose.storage.driver.hdfs.util.docker.HdfsNodeContainer;
 import com.emc.mongoose.storage.driver.hdfs.util.docker.MongooseContainer;
 import com.github.akurilov.commons.system.SizeInBytes;
 import org.apache.commons.csv.CSVRecord;
@@ -41,6 +42,7 @@ public class ReadUsingVariablePathTest {
 	private static final SizeInBytes ITEM_DATA_SIZE = new SizeInBytes(MIB);
 	private static final int CONCURRENCY = 10;
 
+	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 	private static MongooseContainer MONGOOSE_CONTAINER;
 	private static String STD_OUTPUT;
 
@@ -63,14 +65,15 @@ public class ReadUsingVariablePathTest {
 		args.add("--run-scenario=" + hostScenarioPath);
 		args.add("--item-naming-radix=16");
 		args.add("--item-naming-length=16");
-		args.add("--storage-net-node-addrs=" + HdfsNode.addr());
 		args.add("--storage-driver-limit-concurrency=" + CONCURRENCY);
+		args.add("--storage-net-node-addrs=" + DockerHost.ENV_SVC_HOST);
 		EnvUtil.set("ITEM_LIST_FILE", ITEM_LIST_FILE);
 		EnvUtil.set("ITEM_DATA_SIZE", ITEM_DATA_SIZE.toString());
 		EnvUtil.set("ITEM_OUTPUT_PATH", ITEM_OUTPUT_PATH);
 		EnvUtil.set("STEP_LIMIT_COUNT", Integer.toString(STEP_LIMIT_COUNT));
 
 		try {
+			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
 			MONGOOSE_CONTAINER = new MongooseContainer(args, 1000);
 		} catch(final InterruptedException e) {
 			throw e;
@@ -85,6 +88,7 @@ public class ReadUsingVariablePathTest {
 	@AfterClass
 	public static void tearDownClass()
 	throws Exception {
+		HDFS_NODE_CONTAINER.close();
 		MONGOOSE_CONTAINER.close();
 	}
 
