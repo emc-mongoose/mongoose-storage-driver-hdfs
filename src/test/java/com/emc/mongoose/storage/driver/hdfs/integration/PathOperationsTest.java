@@ -98,4 +98,22 @@ extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 			config.configVal("storage"), false, config.configVal("load").intVal("batch-size")
 		);
 	}
+
+	@Test
+	public final void testCreateDir()
+	throws Exception {
+
+	}
+
+	@Test
+	public final void testReadDir()
+	throws Exception {
+
+	}
+
+	@Test
+	public final void testDeleteDir()
+	throws Exception {
+
+	}
 }
