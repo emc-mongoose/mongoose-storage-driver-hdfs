@@ -113,20 +113,20 @@ build_docker_image:
       - build/reports/tests/test/*
     when: on_failure
 
-#test_system_legacy_circular_append:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: CircularAppend
-#
-#test_system_legacy_copy_using_input_path:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: CopyUsingInputPath
-#
-#test_system_legacy_read_using_variable_path:
-#  extends: .test_system_legacy
-#  variables:
-#    TEST_NAME: ReadUsingVariablePath
+test_system_legacy_circular_append:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: CircularAppend
+
+test_system_legacy_copy_using_input_path:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: CopyUsingInputPath
+
+test_system_legacy_read_using_variable_path:
+  extends: .test_system_legacy
+  variables:
+    TEST_NAME: ReadUsingVariablePath
 
 release_to_maven_repo:
   stage: deploy
