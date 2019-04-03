@@ -7,18 +7,9 @@ public interface DockerHost {
 
 	Pattern ENV_VALUE_PATTERN = Pattern.compile("[\\w\\d]+://([\\w\\d\\\\.\\-_]+):\\d{1,5}");
 
-	String ENV_SVC_HOST = /*envDockerHost() == null ? */"127.0.0.1"/* : extractHost(envDockerHost())*/;
+	String ENV_SVC_HOST = envDockerHost() == null ? "127.0.0.1" : envDockerHost();
 
 	static String envDockerHost() {
-		return System.getenv("DOCKER_HOST");
-	}
-
-	static String extractHost(final String envDockerHost) {
-		final Matcher m = ENV_VALUE_PATTERN.matcher(envDockerHost);
-		if(m.find()) {
-			return m.group(1);
-		} else {
-			throw new AssertionError("Invalid docker host env value: " + envDockerHost);
-		}
+		return System.getenv("SERVICE_HOST");
 	}
 }

@@ -92,6 +92,7 @@ dependencies {
 	)
 
 	provided(
+		"org.apache.commons:commons-lang3:3.7",
 		"commons-collections:commons-collections:3.2.2",
 		"commons-configuration:commons-configuration:1.6",
 		"commons-logging:commons-logging:1.2",
