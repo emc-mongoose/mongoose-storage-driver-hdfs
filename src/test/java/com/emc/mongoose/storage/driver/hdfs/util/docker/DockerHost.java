@@ -7,7 +7,7 @@ public interface DockerHost {
 
 	Pattern ENV_VALUE_PATTERN = Pattern.compile("[\\w\\d]+://([\\w\\d\\\\.\\-_]+):\\d{1,5}");
 
-	String ENV_SVC_HOST = envDockerHost() == null ? "127.0.0.1" : extractHost(envDockerHost());
+	String ENV_SVC_HOST = /*envDockerHost() == null ? */"127.0.0.1"/* : extractHost(envDockerHost())*/;
 
 	static String envDockerHost() {
 		return System.getenv("DOCKER_HOST");
