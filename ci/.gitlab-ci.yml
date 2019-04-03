@@ -59,7 +59,7 @@ build:
 test_integration:
   stage: test
   script:
-    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+    - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   artifacts:
     paths:
       - build/reports/tests/test/*
