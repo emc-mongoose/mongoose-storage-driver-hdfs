@@ -56,14 +56,14 @@ build:
     paths:
       - build/libs/mongoose-*.jar
 
-#test_integration:
-#  stage: test
-#  script:
-#    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
-#  artifacts:
-#    paths:
-#      - build/reports/tests/test/*
-#    when: on_failure
+test_integration:
+  stage: test
+  script:
+    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+  artifacts:
+    paths:
+      - build/reports/tests/test/*
+    when: on_failure
 
 build_docker_image:
   stage: build_docker_image
@@ -107,7 +107,7 @@ build_docker_image:
     - export VERSION=$(cat build.gradle | grep version\ = | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
     - docker load < ${IMAGE_FILE_NAME}
-    - ./gradlew test --tests com.emc.mongoose.storage.driver.hdfs.system.${TEST_NAME}Test
+    - ./gradlew systemTest --tests com.emc.mongoose.storage.driver.hdfs.system.${TEST_NAME}Test
   artifacts:
     paths:
       - build/reports/tests/test/*

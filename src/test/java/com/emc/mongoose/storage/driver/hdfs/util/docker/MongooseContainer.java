@@ -162,7 +162,10 @@ implements Runnable, Closeable {
 			.withCmd(this.configArgs)
 			.exec();
 		testContainerId = container.getId();
-		LOG.info("Created the mongoose test container w/ id: " + testContainerId);
+		LOG.info(
+			"Created the mongoose test container w/ id: " + testContainerId + ", volumes: [" + volumeLog.toString()
+				+ ", " + volumeShare + "], binds: " + Arrays.toString(binds)
+		);
 	}
 
 	public final void clearLogs(final String stepId) {
