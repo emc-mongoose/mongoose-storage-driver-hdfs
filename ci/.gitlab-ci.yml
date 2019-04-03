@@ -58,12 +58,12 @@ build:
 
 test_integration:
   stage: test
-  services:
-    - docker:dind
-    - name: dockerq/docker-hdfs:latest
-      alias: storage
   script:
+    - docker run -d --name hdfs_node --network host dockerq/docker-hdfs
     - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+  after_script:
+    - docker stop hdfs_node
+    - docker rm hdfs_node
   artifacts:
     paths:
       - build/reports/tests/test/*
