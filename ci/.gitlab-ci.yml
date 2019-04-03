@@ -66,7 +66,8 @@ test_integration:
     - export HADOOP_VERSION=$(cat build.gradle | grep hadoop | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz -o hadoop-${HADOOP_VERSION}.tar.gz
     - tar xvf hadoop-${HADOOP_VERSION}.tar.gz
-    - cd hadoop-${HADOOP_VERSION}
+    - mv -f hadoop-${HADOOP_VERSION} hadoop
+    - cd hadoop
     - echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > etc/hadoop/core-site.xml
     - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/core-site.xml
     - echo "<configuration><property><name>fs.defaultFS</name><value>hdfs://localhost:9000</value></property></configuration>" >> etc/hadoop/core-site.xml
@@ -74,11 +75,12 @@ test_integration:
     - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/hdfs-site.xml
     - echo "<configuration><property><name>dfs.replication</name><value>1</value></property></configuration>" >> etc/hadoop/hdfs-site.xml
     - bin/hdfs namenode -format
+    - export HDFS_NAMENODE_USER=`whoami`
     - sbin/start-dfs.sh
     - cd ${CI_PROJECT_DIR}
     - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
   after_script:
-    - cd hadoop-${HADOOP_VERSION}
+    - cd hadoop
     - sbin/stop-dfs.sh
   artifacts:
     paths:
