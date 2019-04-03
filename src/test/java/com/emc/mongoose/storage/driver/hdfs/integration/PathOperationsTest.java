@@ -30,7 +30,6 @@ public class PathOperationsTest
 extends HdfsStorageDriver<PathItem, PathOperation<PathItem>> {
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {

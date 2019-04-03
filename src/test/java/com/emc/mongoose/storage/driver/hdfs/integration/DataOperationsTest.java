@@ -21,8 +21,6 @@ import com.github.akurilov.confuse.impl.BasicConfig;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -55,7 +53,6 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 	}
 
 	private static final Credential CREDENTIAL = Credential.getInstance("root", "nope");
-	private static HdfsNodeContainer HDFS_NODE_CONTAINER;
 
 	private static Config getConfig() {
 		try {
@@ -121,22 +118,6 @@ extends HdfsStorageDriver<DataItem, DataOperation<DataItem>> {
 			"hdfs", "test-data-hdfs-driver", DATA_INPUT,
 			config.configVal("storage"), true, config.configVal("load").intVal("batch-size")
 		);
-	}
-
-	@BeforeClass
-	public static void setUpClass()
-	throws Exception {
-		try {
-			HDFS_NODE_CONTAINER = new HdfsNodeContainer();
-		} catch(final Exception e) {
-			throw new AssertionError(e);
-		}
-	}
-
-	@AfterClass
-	public static void tearDownClass()
-	throws Exception {
-		HDFS_NODE_CONTAINER.close();
 	}
 
 	@Test

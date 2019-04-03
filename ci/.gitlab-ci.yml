@@ -59,7 +59,11 @@ build:
 test_integration:
   stage: test
   script:
+    - docker run -d --name hdfs_node -p 9000:9000 dockerq/docker-hdfs:latest
     - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+  after_script:
+    - docker stop hdfs_node
+    - docker rm hdfs_node
   artifacts:
     paths:
       - build/reports/tests/test/*
