@@ -56,34 +56,34 @@ build:
     paths:
       - build/libs/mongoose-*.jar
 
-#test_integration:
-#  stage: test
-#  script:
-#    - apk add bash openssh-client supervisor
-#    - ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
-#    - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-#    - chmod 0600 ~/.ssh/authorized_keys
-#    - export HADOOP_VERSION=$(cat build.gradle | grep hadoop | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
-#    - curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz -o hadoop-${HADOOP_VERSION}.tar.gz
-#    - tar xvf hadoop-${HADOOP_VERSION}.tar.gz
-#    - cd hadoop-${HADOOP_VERSION}
-#    - echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > etc/hadoop/core-site.xml
-#    - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/core-site.xml
-#    - echo "<configuration><property><name>fs.defaultFS</name><value>hdfs://localhost:9000</value></property></configuration>" >> etc/hadoop/core-site.xml
-#    - echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > etc/hadoop/hdfs-site.xml
-#    - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/hdfs-site.xml
-#    - echo "<configuration><property><name>dfs.replication</name><value>1</value></property></configuration>" >> etc/hadoop/hdfs-site.xml
-#    - bin/hdfs --format
-#    - sbin/start-dfs.sh
-#    - cd ${CI_PROJECT_DIR}
-#    - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
-#  after_script:
-#    - cd hadoop-${HADOOP_VERSION}
-#    - sbin/stop-dfs.sh
-#  artifacts:
-#    paths:
-#      - build/reports/tests/test/*
-#    when: on_failure
+test_integration:
+  stage: test
+  script:
+    - apk add bash openssh-client supervisor
+    - ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+    - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    - chmod 0600 ~/.ssh/authorized_keys
+    - export HADOOP_VERSION=$(cat build.gradle | grep hadoop | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    - curl -L https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz -o hadoop-${HADOOP_VERSION}.tar.gz
+    - tar xvf hadoop-${HADOOP_VERSION}.tar.gz
+    - cd hadoop-${HADOOP_VERSION}
+    - echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > etc/hadoop/core-site.xml
+    - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/core-site.xml
+    - echo "<configuration><property><name>fs.defaultFS</name><value>hdfs://localhost:9000</value></property></configuration>" >> etc/hadoop/core-site.xml
+    - echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > etc/hadoop/hdfs-site.xml
+    - echo "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>" >> etc/hadoop/hdfs-site.xml
+    - echo "<configuration><property><name>dfs.replication</name><value>1</value></property></configuration>" >> etc/hadoop/hdfs-site.xml
+    - bin/hdfs namenode -format
+    - sbin/start-dfs.sh
+    - cd ${CI_PROJECT_DIR}
+    - ./gradlew integrationTest --tests com.emc.mongoose.storage.driver.hdfs.integration.*
+  after_script:
+    - cd hadoop-${HADOOP_VERSION}
+    - sbin/stop-dfs.sh
+  artifacts:
+    paths:
+      - build/reports/tests/test/*
+    when: on_failure
 
 build_docker_image:
   stage: build_docker_image
